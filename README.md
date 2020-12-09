@@ -48,4 +48,8 @@ export WEBROOT="/path/to/some/files"
 go run main.go
 ```
 
-The application can be built with `go build -o gosherve main.go`
+The application can be built with
+
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/gosherve-$VERSION-linux-amd64 main.go go build -o gosherve main.go`
+```
