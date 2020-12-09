@@ -1,4 +1,4 @@
-name: Build gosherve
+name: Build Gosherve
 
 on:
   push:
@@ -10,6 +10,10 @@ jobs:
     name: Build and Release
     runs-on: ubuntu-latest
     steps:
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
@@ -26,7 +30,6 @@ jobs:
         run: |
           VERSION=$(echo $REF | cut -d "/" -f3)
           echo $VERSION
-          mkdir bin
           go build -o ./bin/gosherve-$VERSION-linux-amd64 main.go
         env:
           REF: ${{ github.ref }}
