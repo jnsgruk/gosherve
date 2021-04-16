@@ -53,3 +53,34 @@ The application can be built with
 ```bash
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/gosherve-$VERSION-linux-amd64 main.go`
 ```
+
+## Deploying in a container
+
+There is a basic OCI image spec [provided](./Dockerfile), which is published to [Docker Hub](https://hub.docker.com/repository/docker/jnsgruk/gosherve).
+
+You can deploy from the command line:
+
+```bash
+docker run \
+  --rm \
+  -p 8080:8080 \
+  -e REDIRECT_MAP_URL="someurlwithroutes.com/routes.txt" \
+  -e WEBROOT=/public \
+  -v /home/jon/path/to/site:/public \
+  -it jnsgruk/gosherve:latest
+```
+
+Or using Docker Compose:
+
+```yaml
+version: "3"
+
+services:
+  gosherve:
+    image: jnsgruk/gosherve:latest
+    container_name: gosherve
+    environment:
+      WEBROOT: /public
+      REDIRECT_MAP_URL: https://gist.githubusercontent.com/someuser/b590f113af1b341eddab3e7f6e9851b7/raw
+    restart: unless-stopped
+```
