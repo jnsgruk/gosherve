@@ -71,9 +71,13 @@ func handleRedirect(w http.ResponseWriter, r *http.Request) {
 		handleNotFound(w, r)
 		return
 	}
-	log.Info().Str(r.Method, r.URL.Path).Str("redirect_to", url).Int("status_code", 302).Msg("")
-	// Valid redirect found, so return a 302
-	http.Redirect(w, r, url, 302)
+	// Set the redirect type
+	redirectType := http.StatusMovedPermanently
+
+	log.Info().Str(r.Method, r.URL.Path).Str("redirect_to", url).Int("status_code", redirectType).Msg("")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	http.Redirect(w, r, url, redirectType)
 }
 
 // handleNotFound handles invalid paths/redirects and returns a 404 page
