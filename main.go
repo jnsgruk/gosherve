@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"log/slog"
 )
+
+var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 // map to hold defined redirects/aliases
 var redirects map[string]string
@@ -19,21 +21,22 @@ var serveFiles bool = true
 func main() {
 	// Set up the web root directory from an env variable or quit
 	if _, set := os.LookupEnv("WEBROOT"); !set {
-		log.Info().Msg("WEBROOT environment variable not set")
+		logger.Info("WEBROOT environment variable not set")
 		serveFiles = false
 	}
 	// Get the Gist that contains the list of redirects
 	if _, set := os.LookupEnv("REDIRECT_MAP_URL"); !set {
-		log.Fatal().Msg("REDIRECT_MAP_URL environment variable not set")
+		logger.Error("REDIRECT_MAP_URL environment variable not set")
+		os.Exit(1)
 	}
 	// Initially populate the map of redirects
 	if err := fetchRedirects(); err != nil {
-		log.Err(err).Msg("")
+		logger.Error("error fetching redirect map")
 	}
 	// Add a handler for the root URL
 	http.HandleFunc("/", routeHandler)
 	// Start listening
-	log.Fatal().Err(http.ListenAndServe(":8080", nil))
+	http.ListenAndServe(":8080", nil)
 }
 
 // routeHandler is the initial URL handler for all paths
@@ -59,7 +62,12 @@ func routeHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Found a file matching the request, return it (no need to sanitise, ServeFile is *clever*)
 		http.ServeFile(w, r, path)
-		log.Info().Str("method", r.Method).Str("path", r.URL.Path).Int("status_code", 200).Msg("")
+		logger.Info(
+			"serving file",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status_code", 200,
+		)
 	}
 }
 
@@ -74,7 +82,13 @@ func handleRedirect(w http.ResponseWriter, r *http.Request) {
 	// Set the redirect type
 	redirectType := http.StatusMovedPermanently
 
-	log.Info().Str(r.Method, r.URL.Path).Str("redirect_to", url).Int("status_code", redirectType).Msg("")
+	logger.Info(
+		"serving redirect",
+		"method", r.Method,
+		"path", r.URL.Path,
+		"redirect_to", url,
+		"status_code", 200,
+	)
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	http.Redirect(w, r, url, redirectType)
@@ -82,7 +96,7 @@ func handleRedirect(w http.ResponseWriter, r *http.Request) {
 
 // handleNotFound handles invalid paths/redirects and returns a 404 page
 func handleNotFound(w http.ResponseWriter, r *http.Request) {
-	log.Info().Str("method", r.Method).Str("path", r.URL.Path).Int("status_code", 404).Msg("")
+	logger.Error("not found", "method", r.Method, "path", r.URL.Path, "status_code", 404)
 	// Set the return code
 	w.WriteHeader(http.StatusNotFound)
 	// If serving files is disabled, return a simple text response
@@ -112,7 +126,7 @@ func lookupRedirect(path string) (string, error) {
 	}
 	// Redirect not found, so let's update the list
 	if err := fetchRedirects(); err != nil {
-		log.Err(err).Msg("")
+		logger.Error("error fetching redirect map")
 	}
 	// Check again, if redirect now exists then return the URL
 	if url, exists := redirects[alias]; exists {
@@ -146,7 +160,7 @@ func fetchRedirects() error {
 		if len(parts) == 2 {
 			// Check the second part is actually a valid URL
 			if _, err := url.Parse(parts[1]); err != nil {
-				log.Error().Str("url", parts[1]).Msg("invalid url detected in redirects file")
+				logger.Error("invalid url detected in redirects file", "url", parts[1])
 			} else {
 				// Naive parsing complete, add redirect to the map
 				gistRedirects[parts[0]] = parts[1]
@@ -155,6 +169,6 @@ func fetchRedirects() error {
 	}
 	// Update the global redirects map
 	redirects = gistRedirects
-	log.Info().Msg("redirect map updated")
+	logger.Info("redirect map updated")
 	return nil
 }
