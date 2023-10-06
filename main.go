@@ -94,25 +94,24 @@ func handleRedirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, redirectType)
 }
 
-// handleNotFound handles invalid paths/redirects and returns a 404 page
+// handleNotFound handles invalid paths/redirects and returns a 404.html or plaintext "Not found"
 func handleNotFound(w http.ResponseWriter, r *http.Request) {
 	logger.Error("not found", "method", r.Method, "path", r.URL.Path, "status_code", 404)
-	// Set the return code
 	w.WriteHeader(http.StatusNotFound)
+
 	// If serving files is disabled, return a simple text response
 	if !serveFiles {
 		w.Write([]byte("Not found"))
-	} else {
-		// Check if there is a 404.html file to return in the web root
-		content, err := os.ReadFile(fmt.Sprintf("%s/%s", os.Getenv("WEBROOT"), "404.html"))
-		if err != nil {
-			// If no 404.html, return a string
-			w.Write([]byte("Not found"))
-		} else {
-			// Return contents of the 404.html
-			w.Write(content)
-		}
+		return
 	}
+
+	// Check if there is a 404.html to return, otherwise return plaintext
+	content, err := os.ReadFile(fmt.Sprintf("%s/%s", os.Getenv("WEBROOT"), "404.html"))
+	if err != nil {
+		w.Write([]byte("Not found"))
+		return
+	}
+	w.Write(content)
 }
 
 // lookupRedirect checks if an alias/redirect has been specified and returns it
