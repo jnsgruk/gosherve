@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -90,7 +90,7 @@ func handleNotFound(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Not found"))
 	} else {
 		// Check if there is a 404.html file to return in the web root
-		content, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", os.Getenv("WEBROOT"), "404.html"))
+		content, err := os.ReadFile(fmt.Sprintf("%s/%s", os.Getenv("WEBROOT"), "404.html"))
 		if err != nil {
 			// If no 404.html, return a string
 			w.Write([]byte("Not found"))
@@ -132,7 +132,7 @@ func fetchRedirects() error {
 		return fmt.Errorf("error getting redirects from %s", reqURL)
 	}
 	// Read the redirect list
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("error reading redirect gist")
 	}
