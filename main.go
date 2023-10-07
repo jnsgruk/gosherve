@@ -30,9 +30,11 @@ func main() {
 		os.Exit(1)
 	}
 	// Initially populate the map of redirects
-	if err := fetchRedirects(); err != nil {
+	newRedirects, err := fetchRedirects()
+	if err != nil {
 		logger.Error("error fetching redirect map")
 	}
+	redirects = newRedirects
 	// Add a handler for the root URL
 	http.HandleFunc("/", routeHandler)
 	// Start listening
@@ -124,9 +126,11 @@ func lookupRedirect(path string) (string, error) {
 		return url, nil
 	}
 	// Redirect not found, so let's update the list
-	if err := fetchRedirects(); err != nil {
-		logger.Error("error fetching redirect map")
+	newRedirects, err := fetchRedirects()
+	if err != nil {
+		logger.Error("could not fetch redirect map")
 	}
+	redirects = newRedirects
 	// Check again, if redirect now exists then return the URL
 	if url, exists := redirects[alias]; exists {
 		return url, nil
@@ -136,18 +140,18 @@ func lookupRedirect(path string) (string, error) {
 }
 
 // fetchRedirects gets the latest redirects file from the specified url
-func fetchRedirects() error {
+func fetchRedirects() (map[string]string, error) {
 	// Add a query param to the URL to break caching if required (Github Gists!)
 	reqURL := fmt.Sprintf("%s?cachebust=%d", os.Getenv("REDIRECT_MAP_URL"), time.Now().Unix())
 	// Get the redirect list
 	resp, err := http.Get(reqURL)
 	if err != nil {
-		return fmt.Errorf("error getting redirects from %s", reqURL)
+		return nil, fmt.Errorf("error getting redirects from %s", reqURL)
 	}
 	// Read the redirect list
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("error reading redirect gist")
+		return nil, fmt.Errorf("error reading redirect gist")
 	}
 	// Create a new map to hold the redirects just fetched
 	gistRedirects := make(map[string]string)
@@ -166,8 +170,5 @@ func fetchRedirects() error {
 			}
 		}
 	}
-	// Update the global redirects map
-	redirects = gistRedirects
-	logger.Info("redirect map updated")
-	return nil
+	return gistRedirects, nil
 }
