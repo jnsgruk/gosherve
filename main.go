@@ -32,7 +32,11 @@ func main() {
 	// Hydrate the redirects map
 	newRedirects, err := fetchRedirects()
 	if err != nil {
+		// Since this is the first hydration, exit if unable to fetch redirects.
+		// At this point, without the redirects to begin with the server is
+		// quite useless.
 		logger.Error("error fetching redirect map")
+		os.Exit(1)
 	}
 	redirects = newRedirects
 
@@ -116,7 +120,10 @@ func lookupRedirect(path string) (string, error) {
 	// Redirect not found, so let's update the list
 	newRedirects, err := fetchRedirects()
 	if err != nil {
-		logger.Error("could not fetch redirect map")
+		// Return error but don't exit the program - this will leave the
+		// existing map in place which should still work fine.
+		logger.Error("could not fetch redirect updated map")
+		return "", fmt.Errorf("redirect not found")
 	}
 	redirects = newRedirects
 
