@@ -147,14 +147,18 @@ func fetchRedirects() (map[string]string, error) {
 
 	for _, line := range strings.Split(string(body), "\n") {
 		parts := strings.Split(line, " ")
-		if len(parts) == 2 {
-			// Check the second part is actually a valid URL
-			if _, err := url.Parse(parts[1]); err != nil {
-				logger.Error("invalid url detected in redirects file", "url", parts[1])
-			} else {
-				// Naive parsing complete, add redirect to the map
-				gistRedirects[parts[0]] = parts[1]
-			}
+		// Reject the line if there is more than one space
+		if len(parts) != 2 {
+			logger.Error("invalid redirect specification", "specification", line)
+			continue
+		}
+
+		// Check the second part is actually a valid URL
+		if _, err := url.Parse(parts[1]); err != nil {
+			logger.Error("invalid url detected in redirects file", "url", parts[1])
+		} else {
+			// Naive parsing complete, add redirect to the map
+			gistRedirects[parts[0]] = parts[1]
 		}
 	}
 	return gistRedirects, nil
