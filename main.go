@@ -19,17 +19,17 @@ var serveFiles bool = true
 
 func main() {
 	// Setup logging
-	logger = rootLogger(strings.ToLower(os.Getenv("LOG_LEVEL")))
+	logger = getRootLogger(strings.ToLower(os.Getenv("GOSHERVE_LOG_LEVEL")))
 
 	// Check for redirect map URL, exit application if absent
-	if _, set := os.LookupEnv("REDIRECT_MAP_URL"); !set {
-		logger.Error("REDIRECT_MAP_URL environment variable not set")
+	if _, set := os.LookupEnv("GOSHERVE_REDIRECT_MAP_URL"); !set {
+		logger.Error("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 		os.Exit(1)
 	}
 
 	// Check if gosherve is required to serve files from a directory.
-	if _, set := os.LookupEnv("WEBROOT"); !set {
-		logger.Warn("WEBROOT environment variable not set")
+	if _, set := os.LookupEnv("GOSHERVE_WEBROOT"); !set {
+		logger.Warn("GOSHERVE_WEBROOT environment variable not set")
 		serveFiles = false
 	}
 
@@ -59,9 +59,9 @@ func routeHandler(w http.ResponseWriter, r *http.Request) {
 
 	var path string
 	if r.URL.Path == "/" {
-		path = os.Getenv("WEBROOT") + "/index.html"
+		path = os.Getenv("GOSHERVE_WEBROOT") + "/index.html"
 	} else {
-		path = os.Getenv("WEBROOT") + r.URL.Path
+		path = os.Getenv("GOSHERVE_WEBROOT") + r.URL.Path
 	}
 
 	// Check if the requested file is in the defined webroot
@@ -106,7 +106,7 @@ func handleNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if there is a 404.html to return, otherwise return plaintext
-	notFoundPagePath := fmt.Sprintf("%s/%s", os.Getenv("WEBROOT"), "404.html")
+	notFoundPagePath := fmt.Sprintf("%s/%s", os.Getenv("GOSHERVE_WEBROOT"), "404.html")
 	content, err := os.ReadFile(notFoundPagePath)
 	if err != nil {
 		w.Write([]byte("Not found"))
@@ -150,7 +150,7 @@ func lookupRedirect(path string) (string, error) {
 // fetchRedirects gets the latest redirects file from the specified url
 func fetchRedirects() (map[string]string, error) {
 	// Add a query param to the URL to break caching if required (Github Gists!)
-	reqURL := fmt.Sprintf("%s?cachebust=%d", os.Getenv("REDIRECT_MAP_URL"), time.Now().Unix())
+	reqURL := fmt.Sprintf("%s?cachebust=%d", os.Getenv("GOSHERVE_REDIRECT_MAP_URL"), time.Now().Unix())
 
 	resp, err := http.Get(reqURL)
 	logger.Debug("fetched redirects specification", "url", reqURL)
@@ -211,9 +211,9 @@ func getLogger(ctx context.Context) *slog.Logger {
 	return l
 }
 
-// rootLogger builds a new slog.Logger which is configured at the log level
-// according to the LOG_LEVEL environment variable
-func rootLogger(inputLevel string) *slog.Logger {
+// getRootLogger builds a new slog.Logger which is configured at the log level
+// according to the GOSHERVE_LOG_LEVEL environment variable
+func getRootLogger(inputLevel string) *slog.Logger {
 	logLevel := new(slog.LevelVar)
 	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
 	logger = slog.New(h)
