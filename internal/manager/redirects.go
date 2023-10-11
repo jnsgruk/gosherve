@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
@@ -25,7 +24,7 @@ func (m *GosherveManager) RefreshRedirects() error {
 // fetchRedirects gets the latest redirects file from the specified url
 func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 	// Add a query param to the URL to break caching if required (Github Gists!)
-	reqURL := fmt.Sprintf("%s?cachebust=%d", os.Getenv("GOSHERVE_REDIRECT_MAP_URL"), time.Now().Unix())
+	reqURL := fmt.Sprintf("%s?cachebust=%d", m.redirectsSource, time.Now().Unix())
 
 	resp, err := http.Get(reqURL)
 	m.Logger.Debug("fetched redirects specification", "url", reqURL)

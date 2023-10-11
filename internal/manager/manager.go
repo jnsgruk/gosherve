@@ -16,7 +16,7 @@ type GosherveManager struct {
 	Logger    *slog.Logger
 	Metrics   *metrics.GosherveMetrics
 
-	serveFiles      bool
+	webroot         string
 	redirectsSource string
 	promRegistry    *prometheus.Registry
 }
@@ -25,12 +25,14 @@ func NewGosherveManager(logger *slog.Logger) *GosherveManager {
 	reg := prometheus.NewRegistry()
 	m := metrics.NewGosherveMetrics(reg)
 
+	webroot := viper.GetString("webroot")
+
 	return &GosherveManager{
 		Logger:  logger,
 		Metrics: m,
 
-		serveFiles:      viper.Get("webroot") != nil,
-		redirectsSource: viper.Get("redirect_map_url").(string),
+		webroot:         webroot,
+		redirectsSource: viper.GetString("redirect_map_url"),
 		promRegistry:    reg,
 	}
 }

@@ -37,7 +37,7 @@ For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logging.GetRootLogger()
 
-		if viper.Get("redirect_map_url") == nil {
+		if viper.GetString("redirect_map_url") == "" {
 			logger.Error("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 			os.Exit(1)
 		}

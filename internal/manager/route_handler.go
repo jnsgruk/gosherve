@@ -1,10 +1,10 @@
 package manager
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/jnsgruk/gosherve/internal/logging"
@@ -19,25 +19,25 @@ func (rh RouteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rh.manager.Metrics.RequestsTotal.Add(float64(1))
 	l := logging.GetLoggerFromCtx(r.Context())
 
-	if !rh.manager.serveFiles {
+	if rh.manager.webroot == "" {
 		handleRedirect(w, r, rh)
 		return
 	}
 
-	var path string
+	var f string
 	if r.URL.Path == "/" {
-		path = os.Getenv("GOSHERVE_WEBROOT") + "/index.html"
+		f = path.Join(rh.manager.webroot, "index.html")
 	} else {
-		path = os.Getenv("GOSHERVE_WEBROOT") + r.URL.Path
+		f = path.Join(rh.manager.webroot, r.URL.Path)
 	}
 
 	// Check if the requested file is in the defined webroot
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(f); os.IsNotExist(err) {
 		// If the URL doesn't represent a valid file, treat request as a redirect
 		handleRedirect(w, r, rh)
 	} else {
-		http.ServeFile(w, r, path)
-		l.Info("served file", slog.Group("response", "status_code", 200, "file", path))
+		http.ServeFile(w, r, f)
+		l.Info("served file", slog.Group("response", "status_code", 200, "file", f))
 	}
 }
 
@@ -70,14 +70,14 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, rh RouteHandler) {
 
 	w.WriteHeader(http.StatusNotFound)
 
-	if !rh.manager.serveFiles {
+	if rh.manager.webroot == "" {
 		w.Write([]byte("Not found"))
 		logPlainResponse()
 		return
 	}
 
 	// Check if there is a 404.html to return, otherwise return plaintext
-	notFoundPagePath := fmt.Sprintf("%s/%s", os.Getenv("GOSHERVE_WEBROOT"), "404.html")
+	notFoundPagePath := path.Join(rh.manager.webroot, "404.html")
 	content, err := os.ReadFile(notFoundPagePath)
 	if err != nil {
 		w.Write([]byte("Not found"))

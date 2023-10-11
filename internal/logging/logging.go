@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 var logLevels map[string]slog.Level = map[string]slog.Level{
@@ -24,7 +26,7 @@ func GetRootLogger() *slog.Logger {
 	logger := slog.New(h)
 	slog.SetDefault(logger)
 
-	envLevel := os.Getenv("GOSHERVE_LOG_LEVEL")
+	envLevel := viper.GetString("log_level")
 	logLevel.Set(logLevels[strings.ToLower(envLevel)])
 
 	return logger
