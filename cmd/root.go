@@ -72,8 +72,9 @@ func Execute(version string) {
 }
 
 func init() {
-	// Setup environment variable parsing
+	// All env vars should be prefixed GOSHERVE_
 	viper.SetEnvPrefix("gosherve")
+	// Configure viper to look for the right env vars
 	viper.MustBindEnv("redirect_map_url")
 	viper.BindEnv("webroot")
 	viper.BindEnv("log_level")

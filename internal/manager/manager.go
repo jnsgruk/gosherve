@@ -11,6 +11,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// GosherveManager is responsible for the management of a Gosherve instance.
+// This includes the logger, metrics, configuration and starting the
+// HTTP server.
 type GosherveManager struct {
 	Redirects map[string]string
 	Logger    *slog.Logger
@@ -21,22 +24,23 @@ type GosherveManager struct {
 	promRegistry    *prometheus.Registry
 }
 
+// NewGosherveManager returns a newly constructed GosherveManager
 func NewGosherveManager(logger *slog.Logger) *GosherveManager {
 	reg := prometheus.NewRegistry()
 	m := metrics.NewGosherveMetrics(reg)
-
-	webroot := viper.GetString("webroot")
 
 	return &GosherveManager{
 		Logger:  logger,
 		Metrics: m,
 
-		webroot:         webroot,
+		webroot:         viper.GetString("webroot"),
 		redirectsSource: viper.GetString("redirect_map_url"),
 		promRegistry:    reg,
 	}
 }
 
+// Start is used to start the Gosherve instance, listening on the configured
+// port for HTTP requests.
 func (gm *GosherveManager) Start() {
 	r := http.NewServeMux()
 	r.Handle("/", RouteHandler{manager: gm})

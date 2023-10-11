@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+// RefreshRedirects is used to refresh the list of configured redirects
+// in the manager by fetching the latest copy from the specified source.
 func (m *GosherveManager) RefreshRedirects() error {
 	redirects, err := m.fetchRedirects()
 	if err != nil {
@@ -21,7 +23,7 @@ func (m *GosherveManager) RefreshRedirects() error {
 	return nil
 }
 
-// fetchRedirects gets the latest redirects file from the specified url
+// fetchRedirects gets the latest redirects from the specified url
 func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 	// Add a query param to the URL to break caching if required (Github Gists!)
 	reqURL := fmt.Sprintf("%s?cachebust=%d", m.redirectsSource, time.Now().Unix())
@@ -65,8 +67,8 @@ func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 	return gistRedirects, nil
 }
 
-// LookupRedirect checks if an alias/redirect has been specified and returns it
-// if not found, this method will update the list of redirects
+// LookupRedirect checks if an alias/redirect has been specified and returns it.
+// If not found, this method will update the list of redirects and retry the lookup.
 func (m *GosherveManager) LookupRedirect(alias string) (string, error) {
 	// Lookup the redirect and return the URL if found
 	if url, exists := m.Redirects[alias]; exists {

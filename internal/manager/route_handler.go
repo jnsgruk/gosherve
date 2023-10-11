@@ -10,11 +10,14 @@ import (
 	"github.com/jnsgruk/gosherve/internal/logging"
 )
 
+// RouteHandler is the route handler for all URL paths except
+// metrics in Gosherve
 type RouteHandler struct {
 	manager *GosherveManager
 }
 
-// routeHandler is the initial URL handler for all paths
+// ServeHTTP serves the correct response based on the requested URL
+// and updates metrics accordingly.
 func (rh RouteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rh.manager.Metrics.RequestsTotal.Add(float64(1))
 	l := logging.GetLoggerFromCtx(r.Context())
@@ -41,6 +44,8 @@ func (rh RouteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleRedirect tries to lookup a redirect by its alias, returning the HTTP 301
+// response if found.
 func handleRedirect(w http.ResponseWriter, r *http.Request, rh RouteHandler) {
 	l := logging.GetLoggerFromCtx(r.Context())
 

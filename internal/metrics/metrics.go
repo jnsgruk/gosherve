@@ -2,12 +2,14 @@ package metrics
 
 import "github.com/prometheus/client_golang/prometheus"
 
+// GosherveMetrics is a struct containing all of the metrics for gosherve.
 type GosherveMetrics struct {
 	RequestsTotal   prometheus.Counter
 	RedirectsServed *prometheus.CounterVec
 	RedirectsTotal  prometheus.Gauge
 }
 
+// NewGosherveMetrics returns a newly constructed GosherveMetrics instance.
 func NewGosherveMetrics(reg prometheus.Registerer) *GosherveMetrics {
 	m := &GosherveMetrics{
 		RequestsTotal: prometheus.NewCounter(prometheus.CounterOpts{

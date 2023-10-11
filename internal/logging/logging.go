@@ -42,7 +42,7 @@ func GetLoggerFromCtx(ctx context.Context) *slog.Logger {
 	return l
 }
 
-// requestLogger is a middleware that injects a logger into the request's
+// RequestLoggerMiddleware is a middleware that injects a logger into the request's
 // context which automatically includes a log group with request information
 func RequestLoggerMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
