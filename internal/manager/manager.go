@@ -8,7 +8,6 @@ import (
 	"github.com/jnsgruk/gosherve/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/spf13/viper"
 )
 
 // GosherveManager is responsible for the management of a Gosherve instance.
@@ -25,7 +24,7 @@ type GosherveManager struct {
 }
 
 // NewGosherveManager returns a newly constructed GosherveManager
-func NewGosherveManager(logger *slog.Logger) *GosherveManager {
+func NewGosherveManager(logger *slog.Logger, webroot string, src string) *GosherveManager {
 	reg := prometheus.NewRegistry()
 	m := metrics.NewGosherveMetrics(reg)
 
@@ -33,8 +32,8 @@ func NewGosherveManager(logger *slog.Logger) *GosherveManager {
 		Logger:  logger,
 		Metrics: m,
 
-		webroot:         viper.GetString("webroot"),
-		redirectsSource: viper.GetString("redirect_map_url"),
+		webroot:         webroot,
+		redirectsSource: src,
 		promRegistry:    reg,
 	}
 }

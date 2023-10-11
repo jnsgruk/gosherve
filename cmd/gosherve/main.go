@@ -63,7 +63,11 @@ For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 				return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 			}
 
-			mgr := manager.NewGosherveManager(logger)
+			mgr := manager.NewGosherveManager(
+				logger,
+				viper.GetString("webroot"),
+				viper.GetString("redirects_map_url"),
+			)
 			logger.Info("gosherve", "version", version, "commit", commit, "build_date", date)
 
 			// Hydrate the redirects map
