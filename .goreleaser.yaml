@@ -3,7 +3,9 @@ before:
   hooks:
     - go mod tidy
 builds:
-  - mod_timestamp: "{{ .CommitTimestamp }}"
+  - main: ./cmd/gosherve/
+    binary: gosherve
+    mod_timestamp: "{{ .CommitTimestamp }}"
     env:
       - CGO_ENABLED=0
     goos:

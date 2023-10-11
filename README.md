@@ -27,10 +27,11 @@ If file serving is enabled, the web server will always try to find a matching fi
 
 The server is configured with two environment variables:
 
-| Variable Name      |   Type   | Notes                                                                                           |
-| :----------------- | :------: | :---------------------------------------------------------------------------------------------- |
-| `WEBROOT`          | `string` | Path to directory from which to serve files. If not specified, file serving is simply disabled. |
-| `REDIRECT_MAP_URL` | `string` | URL containing a list of aliases and corresponding redirect URLs                                |
+| Variable Name               |   Type   | Notes                                                                                           |
+| :-------------------------- | :------: | :---------------------------------------------------------------------------------------------- |
+| `GOSHERVE_WEBROOT`          | `string` | Path to directory from which to serve files. If not specified, file serving is simply disabled. |
+| `GOSHERVE_REDIRECT_MAP_URL` | `string` | URL containing a list of aliases and corresponding redirect URLs                                |
+| `GOSHERVE_LOG_LEVEL`        | `string` | Sets the log level. One of: `info`, `debug`, `warn`, `error`                                    |
 
 ## Hacking
 
@@ -43,6 +44,7 @@ git clone https://github.com/jnsgruk/gosherve
 export REDIRECT_MAP_URL="https://gist.githubusercontent.com/someuser/somegisthash/raw"
 export WEBROOT="/path/to/some/files"
 
+# Run it!
 go run ./cmd/gosherve/main.go
 ```
 
