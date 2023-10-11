@@ -1,0 +1,91 @@
+package manager
+
+import (
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+)
+
+func (m *GosherveManager) RefreshRedirects() error {
+	redirects, err := m.fetchRedirects()
+	if err != nil {
+		m.Logger.Error("failed to update redirect map: %s", err.Error())
+		return fmt.Errorf("error refreshing redirects")
+	}
+	m.Redirects = redirects
+	m.Metrics.RedirectsTotal.Set(float64(len(m.Redirects)))
+	return nil
+}
+
+// fetchRedirects gets the latest redirects file from the specified url
+func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
+	// Add a query param to the URL to break caching if required (Github Gists!)
+	reqURL := fmt.Sprintf("%s?cachebust=%d", os.Getenv("GOSHERVE_REDIRECT_MAP_URL"), time.Now().Unix())
+
+	resp, err := http.Get(reqURL)
+	m.Logger.Debug("fetched redirects specification", "url", reqURL)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching redirects from %s", reqURL)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading redirect gist")
+	}
+
+	gistRedirects := make(map[string]string)
+
+	for i, line := range strings.Split(string(body), "\n") {
+		// Ignore blank lines
+		if len(line) == 0 {
+			continue
+		}
+
+		parts := strings.Split(line, " ")
+		// Reject the line if there is more than one space
+		if len(parts) != 2 {
+			m.Logger.Debug("invalid redirect specification", "line", i+1)
+			continue
+		}
+
+		// Check the second part is actually a valid URL
+		if _, err := url.Parse(parts[1]); err != nil {
+			m.Logger.Debug("invalid url detected in redirects file", "line", i+1, "url", parts[1])
+		} else {
+			// Naive parsing complete, add redirect to the map
+			gistRedirects[parts[0]] = parts[1]
+			rg := slog.Group("redirect", "alias", parts[0], "url", parts[1])
+			m.Logger.Debug("updated redirect", rg)
+		}
+	}
+	return gistRedirects, nil
+}
+
+// LookupRedirect checks if an alias/redirect has been specified and returns it
+// if not found, this method will update the list of redirects
+func (m *GosherveManager) LookupRedirect(alias string) (string, error) {
+	// Lookup the redirect and return the URL if found
+	if url, exists := m.Redirects[alias]; exists {
+		return url, nil
+	}
+
+	// Redirect not found, so let's update the list
+	err := m.RefreshRedirects()
+	if err != nil {
+		// Return error but don't exit the program - this will leave the
+		// existing map in place which should still work fine.
+		return "", fmt.Errorf("redirect not found")
+	}
+
+	// Check again, if redirect now exists then return the URL
+	if url, exists := m.Redirects[alias]; exists {
+		return url, nil
+	}
+
+	return "", fmt.Errorf("redirect not found")
+}
