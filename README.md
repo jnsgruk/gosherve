@@ -6,6 +6,7 @@ This project is a simple web server written in Go that will:
 
 - Serve files from a specified directory
 - Serve redirects specified in a file hosted at a URL
+- Report some metrics about the redirects served
 
 I wrote this to satisfy the use case of hosting my very simple [personal website](https://jnsgr.uk), while also giving me the ability to set up custom short URLs relatively easily. I don't need any tracking, stats or clever features...
 
@@ -31,56 +32,31 @@ The server is configured with two environment variables:
 | `WEBROOT`          | `string` | Path to directory from which to serve files. If not specified, file serving is simply disabled. |
 | `REDIRECT_MAP_URL` | `string` | URL containing a list of aliases and corresponding redirect URLs                                |
 
-## Getting Started
+## Hacking
 
 The application has minimal dependencies and can be run like so:
 
 ```bash
-# Clone this repo
-mkdir -p $GOPATH/src/github.com/jnsgruk/gosherve
-git clone https://github.com/jnsgruk/gosherve $GOPATH/src/github.com/jnsgruk/gosherve
+git clone https://github.com/jnsgruk/gosherve
 
 # Export some variables to configure gosherve
 export REDIRECT_MAP_URL="https://gist.githubusercontent.com/someuser/somegisthash/raw"
 export WEBROOT="/path/to/some/files"
 
-# Run it!
-go run main.go
+go run ./cmd/gosherve/main.go
 ```
 
-The application can be built with
+## Build & Release
 
-```bash
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/gosherve-$VERSION-linux-amd64 main.go`
+This project uses goreleaser to manage builds and releases.
+
+In local development, you can build a snapshot release like so:
+
+```shell
+goreleaser --snapshot --rm-dist
 ```
 
-## Deploying in a container
+The output will be present in `dist/`.
 
-There is a basic OCI image spec [provided](./Dockerfile), which is published to [Docker Hub](https://hub.docker.com/repository/docker/jnsgruk/gosherve).
-
-You can deploy from the command line:
-
-```bash
-docker run \
-  --rm \
-  -p 8080:8080 \
-  -e REDIRECT_MAP_URL="someurlwithroutes.com/routes.txt" \
-  -e WEBROOT=/public \
-  -v /home/jon/path/to/site:/public \
-  -it jnsgruk/gosherve:latest
-```
-
-Or using Docker Compose:
-
-```yaml
-version: "3"
-
-services:
-  gosherve:
-    image: jnsgruk/gosherve:latest
-    container_name: gosherve
-    environment:
-      WEBROOT: /public
-      REDIRECT_MAP_URL: https://gist.githubusercontent.com/someuser/b590f113af1b341eddab3e7f6e9851b7/raw
-    restart: unless-stopped
-```
+To create a release, create a new tag and push to Github, the release will be automatically
+created by Goreleaser.

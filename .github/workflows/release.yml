@@ -1,0 +1,36 @@
+name: Release Gosherve
+
+on:
+  push:
+    tags: ["*"]
+
+jobs:
+  build:
+    name: Build and Release Gosherve
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: "go.mod"
+
+      - name: Setup goreleaser
+        run: |
+          sudo snap install --classic goreleaser
+
+      - name: Release gosherve
+        id: build
+        run: |
+          goreleaser build --rm-dist --debug
+      
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gosherve-dist
+          if-no-files-found: error
+          path: dist
