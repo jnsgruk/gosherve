@@ -15,7 +15,7 @@ import (
 func (m *GosherveManager) RefreshRedirects() error {
 	redirects, err := m.fetchRedirects()
 	if err != nil {
-		m.Logger.Error("failed to update redirect map: %s", err.Error())
+		m.Logger.Error("failed to update redirect map", "error", err.Error())
 		return fmt.Errorf("error refreshing redirects")
 	}
 	m.Redirects = redirects
