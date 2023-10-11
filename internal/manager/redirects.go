@@ -39,7 +39,7 @@ func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 		return nil, fmt.Errorf("error reading redirect gist")
 	}
 
-	gistRedirects := make(map[string]string)
+	redirects := make(map[string]string)
 
 	for i, line := range strings.Split(string(body), "\n") {
 		// Ignore blank lines
@@ -59,12 +59,12 @@ func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 			m.Logger.Debug("invalid url detected in redirects file", "line", i+1, "url", parts[1])
 		} else {
 			// Naive parsing complete, add redirect to the map
-			gistRedirects[parts[0]] = parts[1]
+			redirects[parts[0]] = parts[1]
 			rg := slog.Group("redirect", "alias", parts[0], "url", parts[1])
 			m.Logger.Debug("updated redirect", rg)
 		}
 	}
-	return gistRedirects, nil
+	return redirects, nil
 }
 
 // LookupRedirect checks if an alias/redirect has been specified and returns it.
