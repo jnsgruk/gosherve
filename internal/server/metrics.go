@@ -6,9 +6,10 @@ import (
 )
 
 type metrics struct {
-	requestsTotal   prometheus.Counter
-	redirectsServed *prometheus.CounterVec
-	redirectsTotal  prometheus.Gauge
+	requestsTotal    prometheus.Counter
+	redirectsServed  *prometheus.CounterVec
+	redirectsDefined prometheus.Gauge
+	responseStatus   *prometheus.CounterVec
 }
 
 func newMetrics() *metrics {
@@ -23,10 +24,15 @@ func newMetrics() *metrics {
 			Name:      "redirects_served",
 			Help:      "The number of requests per redirect",
 		}, []string{"alias"}),
-		redirectsTotal: promauto.NewGauge(prometheus.GaugeOpts{
+		redirectsDefined: promauto.NewGauge(prometheus.GaugeOpts{
 			Namespace: "gosherve",
-			Name:      "redirects_total",
+			Name:      "redirects_defined",
 			Help:      "The number of redirects defined",
 		}),
+		responseStatus: promauto.NewCounterVec(prometheus.CounterOpts{
+			Namespace: "gosherve",
+			Name:      "response_status",
+			Help:      "The statuse codes of HTTP responses",
+		}, []string{"status"}),
 	}
 }

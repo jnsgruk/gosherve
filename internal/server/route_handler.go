@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/jnsgruk/gosherve/internal/logging"
@@ -33,7 +34,8 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 		handleRedirect(w, r, s)
 	} else {
 		http.ServeFile(w, r, f)
-		l.Info("served file", slog.Group("response", "status_code", 200, "file", f))
+		s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
+		l.Info("served file", slog.Group("response", "status_code", http.StatusOK, "file", f))
 	}
 }
 
@@ -51,6 +53,7 @@ func handleRedirect(w http.ResponseWriter, r *http.Request, s *Server) {
 	}
 
 	s.metrics.redirectsServed.WithLabelValues(alias).Inc()
+	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusMovedPermanently)).Inc()
 
 	rg := slog.Group("response", "location", url, "status_code", http.StatusMovedPermanently)
 	l.Info("served redirect", rg)
@@ -63,10 +66,11 @@ func handleRedirect(w http.ResponseWriter, r *http.Request, s *Server) {
 func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 	l := logging.GetLoggerFromCtx(r.Context())
 	logPlainResponse := func() {
-		l.Error("not found", slog.Group("response", "status_code", 404, "text", "Not found"))
+		l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "text", "Not found"))
 	}
 
 	w.WriteHeader(http.StatusNotFound)
+	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusNotFound)).Inc()
 
 	if s.webroot == "" {
 		w.Write([]byte("Not found"))
@@ -84,5 +88,5 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 	}
 
 	w.Write(content)
-	l.Error("not found", slog.Group("response", "status_code", 404, "file", notFoundPagePath))
+	l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "file", notFoundPagePath))
 }

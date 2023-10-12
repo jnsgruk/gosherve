@@ -19,7 +19,7 @@ func (s *Server) RefreshRedirects() error {
 		return fmt.Errorf("error refreshing redirects")
 	}
 	s.redirects = redirects
-	s.metrics.redirectsTotal.Set(float64(s.NumRedirects()))
+	s.metrics.redirectsDefined.Set(float64(s.NumRedirects()))
 	return nil
 }
 
