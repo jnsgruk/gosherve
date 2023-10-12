@@ -18,9 +18,37 @@ func (s *Server) RefreshRedirects() error {
 		slog.Error("failed to update redirect map", "error", err.Error())
 		return fmt.Errorf("error refreshing redirects")
 	}
-	s.Redirects = redirects
-	s.redirectsTotal.Set(float64(len(s.Redirects)))
+	s.redirects = redirects
+	s.metrics.redirectsTotal.Set(float64(s.NumRedirects()))
 	return nil
+}
+
+// LookupRedirect checks if an alias/redirect has been specified and returns it.
+// If not found, this method will update the list of redirects and retry the lookup.
+func (s *Server) LookupRedirect(alias string) (string, error) {
+	// Lookup the redirect and return the URL if found
+	if url, exists := s.redirects[alias]; exists {
+		return url, nil
+	}
+
+	// Redirect not found, so let's update the list
+	err := s.RefreshRedirects()
+	if err != nil {
+		// Return error but don't exit the program - this will leave the
+		// existing map in place which should still work fine.
+		return "", fmt.Errorf("redirect not found")
+	}
+
+	// Check again, if redirect now exists then return the URL
+	if url, exists := s.redirects[alias]; exists {
+		return url, nil
+	}
+
+	return "", fmt.Errorf("redirect not found")
+}
+
+func (s *Server) NumRedirects() int {
+	return len(s.redirects)
 }
 
 // fetchRedirects gets the latest redirects from the specified url
@@ -65,28 +93,4 @@ func (s *Server) fetchRedirects() (map[string]string, error) {
 		}
 	}
 	return redirects, nil
-}
-
-// LookupRedirect checks if an alias/redirect has been specified and returns it.
-// If not found, this method will update the list of redirects and retry the lookup.
-func (s *Server) LookupRedirect(alias string) (string, error) {
-	// Lookup the redirect and return the URL if found
-	if url, exists := s.Redirects[alias]; exists {
-		return url, nil
-	}
-
-	// Redirect not found, so let's update the list
-	err := s.RefreshRedirects()
-	if err != nil {
-		// Return error but don't exit the program - this will leave the
-		// existing map in place which should still work fine.
-		return "", fmt.Errorf("redirect not found")
-	}
-
-	// Check again, if redirect now exists then return the URL
-	if url, exists := s.Redirects[alias]; exists {
-		return url, nil
-	}
-
-	return "", fmt.Errorf("redirect not found")
 }

@@ -72,7 +72,7 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("error fetching redirect map")
 		}
 
-		slog.Info(fmt.Sprintf("fetched %d redirects, starting server", len(s.Redirects)))
+		slog.Info(fmt.Sprintf("fetched %d redirects, starting server", s.NumRedirects()))
 		s.Start()
 		return nil
 	},
