@@ -15,7 +15,7 @@ import (
 func (m *GosherveManager) RefreshRedirects() error {
 	redirects, err := m.fetchRedirects()
 	if err != nil {
-		m.Logger.Error("failed to update redirect map", "error", err.Error())
+		slog.Error("failed to update redirect map", "error", err.Error())
 		return fmt.Errorf("error refreshing redirects")
 	}
 	m.Redirects = redirects
@@ -29,7 +29,7 @@ func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 	reqURL := fmt.Sprintf("%s?cachebust=%d", m.redirectsSource, time.Now().Unix())
 
 	resp, err := http.Get(reqURL)
-	m.Logger.Debug("fetched redirects specification", "url", reqURL)
+	slog.Debug("fetched redirects specification", "url", reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching redirects from %s", reqURL)
 	}
@@ -50,18 +50,18 @@ func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 		parts := strings.Split(line, " ")
 		// Reject the line if there is more than one space
 		if len(parts) != 2 {
-			m.Logger.Debug("invalid redirect specification", "line", i+1)
+			slog.Debug("invalid redirect specification", "line", i+1)
 			continue
 		}
 
 		// Check the second part is actually a valid URL
 		if _, err := url.Parse(parts[1]); err != nil {
-			m.Logger.Debug("invalid url detected in redirects file", "line", i+1, "url", parts[1])
+			slog.Debug("invalid url detected in redirects file", "line", i+1, "url", parts[1])
 		} else {
 			// Naive parsing complete, add redirect to the map
 			redirects[parts[0]] = parts[1]
 			rg := slog.Group("redirect", "alias", parts[0], "url", parts[1])
-			m.Logger.Debug("updated redirect", rg)
+			slog.Debug("updated redirect", rg)
 		}
 	}
 	return redirects, nil

@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/jnsgruk/gosherve/internal/logging"
@@ -15,7 +14,6 @@ import (
 // HTTP server.
 type GosherveManager struct {
 	Redirects map[string]string
-	Logger    *slog.Logger
 	Metrics   *metrics.GosherveMetrics
 
 	webroot         string
@@ -24,12 +22,11 @@ type GosherveManager struct {
 }
 
 // NewGosherveManager returns a newly constructed GosherveManager
-func NewGosherveManager(logger *slog.Logger, webroot string, src string) *GosherveManager {
+func NewGosherveManager(webroot string, src string) *GosherveManager {
 	reg := prometheus.NewRegistry()
 	m := metrics.NewGosherveMetrics(reg)
 
 	return &GosherveManager{
-		Logger:  logger,
 		Metrics: m,
 
 		webroot:         webroot,
@@ -44,5 +41,5 @@ func (gm *GosherveManager) Start() {
 	r := http.NewServeMux()
 	r.Handle("/", RouteHandler{manager: gm})
 	r.Handle("/metrics", promhttp.HandlerFor(gm.promRegistry, promhttp.HandlerOpts{}))
-	http.ListenAndServe(":8080", logging.RequestLoggerMiddleware(r, gm.Logger))
+	http.ListenAndServe(":8080", logging.RequestLoggerMiddleware(r))
 }

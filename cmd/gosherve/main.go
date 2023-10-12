@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime"
 
@@ -57,18 +58,17 @@ a url containing alias/URL pairs. For example:
 For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger := logging.GetRootLogger()
+			logging.SetupLogger()
 
 			if viper.GetString("redirect_map_url") == "" {
 				return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 			}
 
 			mgr := manager.NewGosherveManager(
-				logger,
 				viper.GetString("webroot"),
-				viper.GetString("redirects_map_url"),
+				viper.GetString("redirect_map_url"),
 			)
-			logger.Info("gosherve", "version", version, "commit", commit, "build_date", date)
+			slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
 
 			// Hydrate the redirects map
 			err := mgr.RefreshRedirects()
@@ -79,7 +79,7 @@ For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 				return fmt.Errorf("error fetching redirect map")
 			}
 
-			logger.Info(fmt.Sprintf("fetched %d redirects, starting server", len(mgr.Redirects)))
+			slog.Info(fmt.Sprintf("fetched %d redirects, starting server", len(mgr.Redirects)))
 			mgr.Start()
 			return nil
 		},
