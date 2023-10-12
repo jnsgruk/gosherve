@@ -47,6 +47,7 @@ func (s *Server) LookupRedirect(alias string) (string, error) {
 	return "", fmt.Errorf("redirect not found")
 }
 
+// NumRedirects returns the number of redirects that are currently defined
 func (s *Server) NumRedirects() int {
 	return len(s.redirects)
 }
