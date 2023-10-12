@@ -5,6 +5,7 @@ import (
 
 	"github.com/jnsgruk/gosherve/internal/logging"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -16,7 +17,6 @@ type Server struct {
 
 	webroot         string
 	redirectsSource string
-	reg             *prometheus.Registry
 
 	requestsTotal   prometheus.Counter
 	redirectsServed *prometheus.CounterVec
@@ -24,29 +24,27 @@ type Server struct {
 }
 
 // NewServer returns a newly constructed Server
-func NewServer(webroot string, src string, reg *prometheus.Registry) *Server {
+func NewServer(webroot string, src string) *Server {
 	m := &Server{
 		webroot:         webroot,
 		redirectsSource: src,
-		reg:             reg,
 
-		requestsTotal: prometheus.NewCounter(prometheus.CounterOpts{
+		requestsTotal: promauto.NewCounter(prometheus.CounterOpts{
 			Namespace: "gosherve",
 			Name:      "requests_total",
 			Help:      "The total number of HTTP requests made to Gosherve.",
 		}),
-		redirectsServed: prometheus.NewCounterVec(prometheus.CounterOpts{
+		redirectsServed: promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "gosherve",
 			Name:      "redirects_served",
 			Help:      "The number of requests per redirect",
 		}, []string{"alias"}),
-		redirectsTotal: prometheus.NewGauge(prometheus.GaugeOpts{
+		redirectsTotal: promauto.NewGauge(prometheus.GaugeOpts{
 			Namespace: "gosherve",
 			Name:      "redirects_total",
 			Help:      "The number of redirects defined",
 		}),
 	}
-	reg.MustRegister(m.requestsTotal, m.redirectsServed, m.redirectsTotal)
 	return m
 }
 
@@ -55,6 +53,6 @@ func NewServer(webroot string, src string, reg *prometheus.Registry) *Server {
 func (s *Server) Start() {
 	r := http.NewServeMux()
 	r.Handle("/", RouteHandler{manager: s})
-	r.Handle("/metrics", promhttp.HandlerFor(s.reg, promhttp.HandlerOpts{}))
+	r.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(":8080", logging.RequestLoggerMiddleware(r))
 }

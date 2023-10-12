@@ -8,8 +8,6 @@ import (
 
 	"github.com/jnsgruk/gosherve/internal/logging"
 	"github.com/jnsgruk/gosherve/internal/server"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -61,15 +59,8 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 		}
 
-		// Setup a new Prometheus registry with some default collectors
-		reg := prometheus.NewRegistry()
-		reg.MustRegister(
-			collectors.NewGoCollector(),
-			collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-		)
-
 		// Instantiate a new Gosherve server
-		s := server.NewServer(webroot, redirect_map_url, reg)
+		s := server.NewServer(webroot, redirect_map_url)
 		slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
 
 		// Hydrate the redirects map
