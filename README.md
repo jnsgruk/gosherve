@@ -41,8 +41,8 @@ The application has minimal dependencies and can be run like so:
 git clone https://github.com/jnsgruk/gosherve
 
 # Export some variables to configure gosherve
-export REDIRECT_MAP_URL="https://gist.githubusercontent.com/someuser/somegisthash/raw"
-export WEBROOT="/path/to/some/files"
+export GOSHERVE_REDIRECT_MAP_URL="https://gist.githubusercontent.com/someuser/somegisthash/raw"
+export GOSHERVE_WEBROOT="/path/to/some/files"
 
 # Run it!
 go run ./cmd/gosherve/main.go
