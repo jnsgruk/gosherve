@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/spf13/viper"
 )
 
 type ctxKey string
@@ -24,15 +22,12 @@ var logLevels map[string]slog.Level = map[string]slog.Level{
 
 // SetupLogger builds a new slog.Logger which is configured at the log level
 // according to the GOSHERVE_LOG_LEVEL environment variable
-func SetupLogger() *slog.Logger {
+func SetupLogger(level string) *slog.Logger {
 	logLevel := new(slog.LevelVar)
 	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
 	logger := slog.New(h)
 	slog.SetDefault(logger)
-
-	envLevel := viper.GetString("log_level")
-	logLevel.Set(logLevels[strings.ToLower(envLevel)])
-
+	logLevel.Set(logLevels[strings.ToLower(level)])
 	return logger
 }
 

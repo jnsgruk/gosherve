@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
 	"gopkg.in/check.v1"
 )
 
@@ -22,7 +21,7 @@ type LoggingTestSuite struct {
 }
 
 func (s *LoggingTestSuite) SetUpSuite(c *check.C) {
-	s.logger = SetupLogger()
+	s.logger = SetupLogger("info")
 }
 
 var _ = check.Suite(&LoggingTestSuite{})
@@ -41,12 +40,10 @@ func (s *LoggingTestSuite) TestGetRootLoggerDefaults(c *check.C) {
 // manipulated accordingly.
 func (s *LoggingTestSuite) TestGetRootLoggerSetLogLevel(c *check.C) {
 	ctx := context.Background()
-	viper.Set("log_level", "DEBUG")
-	s.logger = SetupLogger()
+	s.logger = SetupLogger("DEBUG")
 	c.Assert(s.logger.Enabled(ctx, slog.LevelDebug), check.Equals, true)
 
-	viper.Set("log_level", "info")
-	s.logger = SetupLogger()
+	s.logger = SetupLogger("info")
 	c.Assert(s.logger.Enabled(ctx, slog.LevelDebug), check.Equals, false)
 }
 

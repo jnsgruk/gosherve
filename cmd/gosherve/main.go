@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create a default slog logger with the correct handlers
-		logging.SetupLogger()
+		logging.SetupLogger(viper.GetString("log_level"))
 
 		webroot := viper.GetString("webroot")
 		redirect_map_url := viper.GetString("redirect_map_url")
