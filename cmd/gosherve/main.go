@@ -21,27 +21,8 @@ var (
 	date    string
 )
 
-func main() {
-	viper.SetEnvPrefix("gosherve")
-	viper.MustBindEnv("redirect_map_url")
-	viper.BindEnv("webroot")
-	viper.BindEnv("log_level")
-
-	err := NewRootCommand().Execute()
-	if err != nil {
-		os.Exit(1)
-	}
-}
-
-// NewRootCommand returns a new cobra command representing the root
-// gosherve CLI
-func NewRootCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:     "gosherve",
-		Version: buildVersion(version, commit, date),
-		Short:   "gosherve - file server & URL shortening/redirect service",
-		Long: `
-A simple HTTP file server with some basic URL shortening/redirect functionality
+var shortDesc = "A file server & URL shortening/redirect service"
+var longDesc string = `A file server & URL shortening/redirect service
 
 This project is a simple web server written in Go that will:
 
@@ -58,41 +39,52 @@ a url containing alias/URL pairs. For example:
 		wow https://www.ohmygoodness.com
 
 For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
-		`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			logging.SetupLogger()
+`
 
-			if viper.GetString("redirect_map_url") == "" {
-				return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
-			}
+var rootCmd = &cobra.Command{
+	Use:           "gosherve",
+	Version:       buildVersion(version, commit, date),
+	Short:         shortDesc,
+	Long:          longDesc,
+	SilenceErrors: false,
+	SilenceUsage:  true,
 
-			reg := prometheus.NewRegistry()
-			reg.MustRegister(
-				collectors.NewGoCollector(),
-				collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-			)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Create a default slog logger with the correct handlers
+		logging.SetupLogger()
 
-			s := server.NewServer(
-				viper.GetString("webroot"),
-				viper.GetString("redirect_map_url"),
-				reg,
-			)
-			slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
+		webroot := viper.GetString("webroot")
+		redirect_map_url := viper.GetString("redirect_map_url")
 
-			// Hydrate the redirects map
-			err := s.RefreshRedirects()
-			if err != nil {
-				// Since this is the first hydration, exit if unable to fetch redirects.
-				// At this point, without the redirects to begin with the server is
-				// quite useless.
-				return fmt.Errorf("error fetching redirect map")
-			}
+		if redirect_map_url == "" {
+			// Application cannot function without a redirect map url.
+			return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
+		}
 
-			slog.Info(fmt.Sprintf("fetched %d redirects, starting server", len(s.Redirects)))
-			s.Start()
-			return nil
-		},
-	}
+		// Setup a new Prometheus registry with some default collectors
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(
+			collectors.NewGoCollector(),
+			collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+		)
+
+		// Instantiate a new Gosherve server
+		s := server.NewServer(webroot, redirect_map_url, reg)
+		slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
+
+		// Hydrate the redirects map
+		err := s.RefreshRedirects()
+		if err != nil {
+			// Since this is the first hydration, exit if unable to fetch redirects.
+			// At this point, without the redirects to begin with the server is
+			// quite useless.
+			return fmt.Errorf("error fetching redirect map")
+		}
+
+		slog.Info(fmt.Sprintf("fetched %d redirects, starting server", len(s.Redirects)))
+		s.Start()
+		return nil
+	},
 }
 
 // buildVersion writes a multiline version string from the specified
@@ -107,4 +99,16 @@ func buildVersion(version, commit, date string) string {
 	}
 	result = fmt.Sprintf("%s\ngoos: %s\ngoarch: %s", result, runtime.GOOS, runtime.GOARCH)
 	return result
+}
+
+func main() {
+	viper.SetEnvPrefix("gosherve")
+	viper.MustBindEnv("redirect_map_url")
+	viper.BindEnv("webroot")
+	viper.BindEnv("log_level")
+
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }
