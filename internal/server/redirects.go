@@ -1,4 +1,4 @@
-package manager
+package server
 
 import (
 	"fmt"
@@ -12,21 +12,21 @@ import (
 
 // RefreshRedirects is used to refresh the list of configured redirects
 // in the manager by fetching the latest copy from the specified source.
-func (m *GosherveManager) RefreshRedirects() error {
-	redirects, err := m.fetchRedirects()
+func (s *Server) RefreshRedirects() error {
+	redirects, err := s.fetchRedirects()
 	if err != nil {
 		slog.Error("failed to update redirect map", "error", err.Error())
 		return fmt.Errorf("error refreshing redirects")
 	}
-	m.Redirects = redirects
-	m.Metrics.RedirectsTotal.Set(float64(len(m.Redirects)))
+	s.Redirects = redirects
+	s.redirectsTotal.Set(float64(len(s.Redirects)))
 	return nil
 }
 
 // fetchRedirects gets the latest redirects from the specified url
-func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
+func (s *Server) fetchRedirects() (map[string]string, error) {
 	// Add a query param to the URL to break caching if required (Github Gists!)
-	reqURL := fmt.Sprintf("%s?cachebust=%d", m.redirectsSource, time.Now().Unix())
+	reqURL := fmt.Sprintf("%s?cachebust=%d", s.redirectsSource, time.Now().Unix())
 
 	resp, err := http.Get(reqURL)
 	slog.Debug("fetched redirects specification", "url", reqURL)
@@ -69,14 +69,14 @@ func (m *GosherveManager) fetchRedirects() (map[string]string, error) {
 
 // LookupRedirect checks if an alias/redirect has been specified and returns it.
 // If not found, this method will update the list of redirects and retry the lookup.
-func (m *GosherveManager) LookupRedirect(alias string) (string, error) {
+func (s *Server) LookupRedirect(alias string) (string, error) {
 	// Lookup the redirect and return the URL if found
-	if url, exists := m.Redirects[alias]; exists {
+	if url, exists := s.Redirects[alias]; exists {
 		return url, nil
 	}
 
 	// Redirect not found, so let's update the list
-	err := m.RefreshRedirects()
+	err := s.RefreshRedirects()
 	if err != nil {
 		// Return error but don't exit the program - this will leave the
 		// existing map in place which should still work fine.
@@ -84,7 +84,7 @@ func (m *GosherveManager) LookupRedirect(alias string) (string, error) {
 	}
 
 	// Check again, if redirect now exists then return the URL
-	if url, exists := m.Redirects[alias]; exists {
+	if url, exists := s.Redirects[alias]; exists {
 		return url, nil
 	}
 

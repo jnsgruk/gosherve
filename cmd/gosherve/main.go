@@ -7,7 +7,9 @@ import (
 	"runtime"
 
 	"github.com/jnsgruk/gosherve/internal/logging"
-	"github.com/jnsgruk/gosherve/internal/manager"
+	"github.com/jnsgruk/gosherve/internal/server"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -64,14 +66,21 @@ For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 				return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 			}
 
-			mgr := manager.NewGosherveManager(
+			reg := prometheus.NewRegistry()
+			reg.MustRegister(
+				collectors.NewGoCollector(),
+				collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+			)
+
+			s := server.NewServer(
 				viper.GetString("webroot"),
 				viper.GetString("redirect_map_url"),
+				reg,
 			)
 			slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
 
 			// Hydrate the redirects map
-			err := mgr.RefreshRedirects()
+			err := s.RefreshRedirects()
 			if err != nil {
 				// Since this is the first hydration, exit if unable to fetch redirects.
 				// At this point, without the redirects to begin with the server is
@@ -79,8 +88,8 @@ For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 				return fmt.Errorf("error fetching redirect map")
 			}
 
-			slog.Info(fmt.Sprintf("fetched %d redirects, starting server", len(mgr.Redirects)))
-			mgr.Start()
+			slog.Info(fmt.Sprintf("fetched %d redirects, starting server", len(s.Redirects)))
+			s.Start()
 			return nil
 		},
 	}

@@ -1,4 +1,4 @@
-package manager
+package server
 
 import (
 	"log/slog"
@@ -13,13 +13,13 @@ import (
 // RouteHandler is the route handler for all URL paths except
 // metrics in Gosherve
 type RouteHandler struct {
-	manager *GosherveManager
+	manager *Server
 }
 
 // ServeHTTP serves the correct response based on the requested URL
 // and updates metrics accordingly.
 func (rh RouteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rh.manager.Metrics.RequestsTotal.Add(float64(1))
+	rh.manager.requestsTotal.Add(float64(1))
 	l := logging.GetLoggerFromCtx(r.Context())
 
 	if rh.manager.webroot == "" {
@@ -57,7 +57,7 @@ func handleRedirect(w http.ResponseWriter, r *http.Request, rh RouteHandler) {
 		return
 	}
 
-	rh.manager.Metrics.RedirectsServed.WithLabelValues(alias).Add(float64(1))
+	rh.manager.redirectsServed.WithLabelValues(alias).Add(float64(1))
 
 	rg := slog.Group("response", "location", url, "status_code", http.StatusMovedPermanently)
 	l.Info("served redirect", rg)
