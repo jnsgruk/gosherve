@@ -26,8 +26,10 @@ jobs:
       - name: Release gosherve
         id: build
         run: |
-          goreleaser build --rm-dist --debug
-      
+          goreleaser release --debug --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v3
         with:
