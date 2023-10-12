@@ -32,7 +32,7 @@ func newMetrics() *metrics {
 		responseStatus: promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "gosherve",
 			Name:      "response_status",
-			Help:      "The statuse codes of HTTP responses",
+			Help:      "The status codes of HTTP responses",
 		}, []string{"status"}),
 	}
 }

@@ -30,7 +30,7 @@ func NewServer(webroot string, src string) *Server {
 // Start is used to start the Gosherve server, listening on port 8080.
 // A metrics server is also started on port 8081.
 func (s *Server) Start() {
-	// Run the metrics handler on a seperate HTTP server and different port
+	// Run the metrics handler on a separate HTTP server and different port
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		slog.Info("starting metrics server", "port", 8081)
