@@ -13,23 +13,24 @@ type metrics struct {
 }
 
 func newMetrics() *metrics {
+	reg := prometheus.NewRegistry()
 	return &metrics{
-		requestsTotal: promauto.NewCounter(prometheus.CounterOpts{
+		requestsTotal: promauto.With(reg).NewCounter(prometheus.CounterOpts{
 			Namespace: "gosherve",
 			Name:      "requests_total",
 			Help:      "The total number of HTTP requests made to Gosherve.",
 		}),
-		redirectsServed: promauto.NewCounterVec(prometheus.CounterOpts{
+		redirectsServed: promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
 			Namespace: "gosherve",
 			Name:      "redirects_served",
 			Help:      "The number of requests per redirect",
 		}, []string{"alias"}),
-		redirectsDefined: promauto.NewGauge(prometheus.GaugeOpts{
+		redirectsDefined: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 			Namespace: "gosherve",
 			Name:      "redirects_defined",
 			Help:      "The number of redirects defined",
 		}),
-		responseStatus: promauto.NewCounterVec(prometheus.CounterOpts{
+		responseStatus: promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
 			Namespace: "gosherve",
 			Name:      "response_status",
 			Help:      "The status codes of HTTP responses",

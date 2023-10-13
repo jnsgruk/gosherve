@@ -21,6 +21,7 @@ type Server struct {
 // NewServer returns a newly constructed Server
 func NewServer(webroot string, src string) *Server {
 	return &Server{
+		redirects:       map[string]string{},
 		redirectsSource: src,
 		webroot:         webroot,
 		metrics:         newMetrics(),
