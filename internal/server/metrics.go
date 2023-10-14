@@ -12,8 +12,7 @@ type metrics struct {
 	responseStatus   *prometheus.CounterVec
 }
 
-func newMetrics() *metrics {
-	reg := prometheus.NewRegistry()
+func newMetrics(reg *prometheus.Registry) *metrics {
 	return &metrics{
 		requestsTotal: promauto.With(reg).NewCounter(prometheus.CounterOpts{
 			Namespace: "gosherve",

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/jnsgruk/gosherve/internal/logging"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -16,15 +17,18 @@ type Server struct {
 	redirectsSource string
 	webroot         string
 	metrics         *metrics
+	registry        *prometheus.Registry
 }
 
 // NewServer returns a newly constructed Server
 func NewServer(webroot string, src string) *Server {
+	reg := prometheus.NewRegistry()
 	return &Server{
 		redirects:       map[string]string{},
 		redirectsSource: src,
 		webroot:         webroot,
-		metrics:         newMetrics(),
+		metrics:         newMetrics(reg),
+		registry:        reg,
 	}
 }
 
@@ -33,7 +37,7 @@ func NewServer(webroot string, src string) *Server {
 func (s *Server) Start() {
 	// Run the metrics handler on a separate HTTP server and different port
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
+		http.Handle("/metrics", promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{}))
 		slog.Info("starting metrics server", "port", 8081)
 		http.ListenAndServe(":8081", nil)
 	}()
