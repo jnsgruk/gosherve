@@ -49,7 +49,7 @@ func RequestLoggerMiddleware(next http.Handler) http.Handler {
 			"request",
 			"method", r.Method,
 			"url", r.URL.Path,
-			"user-agent", r.UserAgent(),
+			"user_agent", r.UserAgent(),
 		))
 		ctx := context.WithValue(r.Context(), ctxLoggerKey, l)
 		next.ServeHTTP(rw, r.WithContext(ctx))

@@ -96,6 +96,6 @@ func (s *LoggingTestSuite) TestRequestLoggerMiddleware(c *check.C) {
 	handlerToTest.ServeHTTP(httptest.NewRecorder(), req)
 
 	// Check that log lines written contain the "request" group
-	ok := strings.Contains(buf.String(), `"request":{"method":"GET","url":"/foo","user-agent":""}`)
+	ok := strings.Contains(buf.String(), `"request":{"method":"GET","url":"/foo","user_agent":""}`)
 	c.Assert(ok, check.Equals, true)
 }
