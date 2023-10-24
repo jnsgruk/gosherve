@@ -45,7 +45,12 @@ func GetLoggerFromCtx(ctx context.Context) *slog.Logger {
 // context which automatically includes a log group with request information
 func RequestLoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		l := slog.Default().With(slog.Group("request", "method", r.Method, "url", r.URL.Path))
+		l := slog.Default().With(slog.Group(
+			"request",
+			"method", r.Method,
+			"url", r.URL.Path,
+			"user-agent", r.UserAgent(),
+		))
 		ctx := context.WithValue(r.Context(), ctxLoggerKey, l)
 		next.ServeHTTP(rw, r.WithContext(ctx))
 	})
