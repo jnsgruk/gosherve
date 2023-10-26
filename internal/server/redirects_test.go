@@ -2,12 +2,7 @@ package server
 
 import (
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 	"gopkg.in/check.v1"
 )
 
@@ -24,36 +19,10 @@ baz http://baz.qux
 garbagethatshouldntbeparsed
 `
 
-func Test(t *testing.T) { check.TestingT(t) }
-
 type RedirectsTestSuite struct{}
 
 // func (s *ServerTestSuite) SetUpSuite(c *check.C) {}
 var _ = check.Suite(&RedirectsTestSuite{})
-
-func NewMockRedirectSource() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/mockRedirects1" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(mockRedirects1))
-			return
-		}
-		if r.URL.Path == "/mockRedirects2" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(mockRedirects2))
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte{})
-	}))
-}
-
-// readGauge is a helper function for reading prometheus gauge values
-func readGauge(m prometheus.Gauge) float64 {
-	pb := &dto.Metric{}
-	m.Write(pb)
-	return pb.GetGauge().GetValue()
-}
 
 // TestFetchRedirectsOnInit tests the happy path of a serve being initialised and hydrating
 // itself with an initial set of redirects
