@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jnsgruk/gosherve/internal/logging"
+	"github.com/jnsgruk/gosherve/pkg/logging"
 )
 
 // routeHandler handles all routes for the Gosherve application except /metrics

@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/jnsgruk/gosherve/internal/logging"
-	"github.com/jnsgruk/gosherve/internal/server"
+	"github.com/jnsgruk/gosherve/pkg/logging"
+	"github.com/jnsgruk/gosherve/pkg/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
