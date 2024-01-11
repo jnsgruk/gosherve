@@ -19,7 +19,7 @@ type RouteHandlerTestSuite struct {
 
 func (s *RouteHandlerTestSuite) SetUpTest(c *check.C) {
 	s.mockRedirectSource = NewMockRedirectSource()
-	s.server = NewServer("", fmt.Sprintf("%s/mockRedirects1", s.mockRedirectSource.URL))
+	s.server = NewServer(nil, fmt.Sprintf("%s/mockRedirects1", s.mockRedirectSource.URL))
 }
 
 func (s *RouteHandlerTestSuite) TearDownTest(c *check.C) {
@@ -80,7 +80,8 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFound(c *check.C) {
 func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFoundRich(c *check.C) {
 	dir := c.MkDir()
 	os.WriteFile(path.Join(dir, "404.html"), []byte("<h1>404</h1>"), 0666)
-	s.server.webroot = dir
+	fsys := os.DirFS(dir)
+	s.server.webroot = &fsys
 
 	body, code := requestRoute(*s.server, "/undefined")
 
@@ -97,7 +98,8 @@ func (s *RouteHandlerTestSuite) TestFileServeOk(c *check.C) {
 	dir := c.MkDir()
 	os.WriteFile(path.Join(dir, "index.html"), []byte("<h1>Gosherve</h1>"), 0666)
 	os.WriteFile(path.Join(dir, "script.js"), []byte("alert('script')"), 0666)
-	s.server.webroot = dir
+	fsys := os.DirFS(dir)
+	s.server.webroot = &fsys
 
 	body, code := requestRoute(*s.server, "/")
 
@@ -112,6 +114,24 @@ func (s *RouteHandlerTestSuite) TestFileServeOk(c *check.C) {
 	c.Assert(strings.TrimSpace(body), check.Equals, `alert('script')`)
 	// Check metrics were incremented properly
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "200"), check.Equals, float64(2))
+}
+
+// TestDirectoryServeOk tests a request to the root both where there is a webroot enabled,
+// and where there is not
+func (s *RouteHandlerTestSuite) TestDirectoryServeOk(c *check.C) {
+	dir := c.MkDir()
+	os.MkdirAll(path.Join(dir, "testDir"), 0777)
+	os.WriteFile(path.Join(dir, "testDir", "index.html"), []byte("<h1>Gosherve</h1>"), 0666)
+
+	fsys := os.DirFS(dir)
+	s.server.webroot = &fsys
+
+	body, code := requestRoute(*s.server, "/testDir")
+
+	c.Assert(http.StatusOK, check.Equals, code)
+	c.Assert(strings.TrimSpace(body), check.Equals, `<h1>Gosherve</h1>`)
+	// Check metrics were incremented properly
+	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "200"), check.Equals, float64(1))
 }
 
 // TestFileServeNotFound tests a request to a file path where the file is not found

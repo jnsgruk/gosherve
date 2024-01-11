@@ -30,7 +30,7 @@ func (s *RedirectsTestSuite) TestFetchRedirectsOnInit(c *check.C) {
 	mockServer := NewMockRedirectSource()
 	defer mockServer.Close()
 
-	server := NewServer("", fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
+	server := NewServer(nil, fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
 	c.Assert(server.redirects, check.DeepEquals, map[string]string{})
 	c.Assert(readGauge(server.metrics.redirectsDefined), check.Equals, float64(0))
 
@@ -49,7 +49,7 @@ func (s *RedirectsTestSuite) TestRedirectsUpdate(c *check.C) {
 	mockServer := NewMockRedirectSource()
 	defer mockServer.Close()
 
-	server := NewServer("", fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
+	server := NewServer(nil, fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
 	err := server.RefreshRedirects()
 
 	c.Assert(err, check.IsNil)
@@ -70,7 +70,7 @@ func (s *RedirectsTestSuite) TestRedirectsUpdate(c *check.C) {
 
 // TestRedirectsUpdateFailedHydrate tests the error response when a hydration fails
 func (s *RedirectsTestSuite) TestRedirectsUpdateFailedHydrate(c *check.C) {
-	server := NewServer("", "badurl")
+	server := NewServer(nil, "badurl")
 	err := server.RefreshRedirects()
 
 	c.Assert(err, check.ErrorMatches, "error refreshing redirects")
@@ -83,7 +83,7 @@ func (s *RedirectsTestSuite) TestRedirectsUpdateFailedRefresh(c *check.C) {
 	mockServer := NewMockRedirectSource()
 	defer mockServer.Close()
 
-	server := NewServer("", fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
+	server := NewServer(nil, fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
 	err := server.RefreshRedirects()
 
 	c.Assert(err, check.IsNil)
@@ -99,7 +99,7 @@ func (s *RedirectsTestSuite) TestRedirectsUpdateFailedRefresh(c *check.C) {
 // TestLookupRedirectPresent tests that LookupRedirect does the right thing when the requested
 // redirect is present in the map
 func (s *RedirectsTestSuite) TestLookupRedirectPresent(c *check.C) {
-	server := NewServer("", "test")
+	server := NewServer(nil, "test")
 	server.redirects = map[string]string{"foo": "http://foo.bar"}
 	redirect, err := server.LookupRedirect("foo")
 
@@ -113,7 +113,7 @@ func (s *RedirectsTestSuite) TestLookupRedirectPresentAfterRefresh(c *check.C) {
 	mockServer := NewMockRedirectSource()
 	defer mockServer.Close()
 
-	server := NewServer("", fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
+	server := NewServer(nil, fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
 	c.Assert(readGauge(server.metrics.redirectsDefined), check.Equals, float64(0))
 
 	redirect, err := server.LookupRedirect("foo")
@@ -128,7 +128,7 @@ func (s *RedirectsTestSuite) TestLookupRedirectFail(c *check.C) {
 	mockServer := NewMockRedirectSource()
 	defer mockServer.Close()
 
-	server := NewServer("", fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
+	server := NewServer(nil, fmt.Sprintf("%s/mockRedirects1", mockServer.URL))
 	c.Assert(readGauge(server.metrics.redirectsDefined), check.Equals, float64(0))
 
 	redirect, err := server.LookupRedirect("notpresent")

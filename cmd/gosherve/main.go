@@ -51,7 +51,8 @@ var rootCmd = &cobra.Command{
 		// Create a default slog logger with the correct handlers
 		logging.SetupLogger(viper.GetString("log_level"))
 
-		webroot := viper.GetString("webroot")
+		webroot_path := viper.GetString("webroot")
+		webrootFS := os.DirFS(webroot_path)
 		redirect_map_url := viper.GetString("redirect_map_url")
 
 		if redirect_map_url == "" {
@@ -60,7 +61,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Instantiate a new Gosherve server
-		s := server.NewServer(webroot, redirect_map_url)
+		s := server.NewServer(&webrootFS, redirect_map_url)
 		slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
 
 		// Hydrate the redirects map

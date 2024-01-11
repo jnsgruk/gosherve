@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io/fs"
 	"log/slog"
 	"net/http"
 
@@ -15,13 +16,13 @@ import (
 type Server struct {
 	redirects       map[string]string
 	redirectsSource string
-	webroot         string
+	webroot         *fs.FS
 	metrics         *metrics
 	registry        *prometheus.Registry
 }
 
 // NewServer returns a newly constructed Server
-func NewServer(webroot string, src string) *Server {
+func NewServer(webroot *fs.FS, src string) *Server {
 	reg := prometheus.NewRegistry()
 	return &Server{
 		redirects:       map[string]string{},

@@ -1,12 +1,14 @@
 package server
 
 import (
+	"bytes"
+	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
-	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jnsgruk/gosherve/pkg/logging"
 )
@@ -16,27 +18,35 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 	s.metrics.requestsTotal.Inc()
 	l := logging.GetLoggerFromCtx(r.Context())
 
-	if s.webroot == "" {
+	if s.webroot == nil {
 		handleRedirect(w, r, s)
 		return
 	}
 
-	var f string
+	var filepath string
 	if r.URL.Path == "/" {
-		f = path.Join(s.webroot, "index.html")
+		filepath = "index.html"
 	} else {
-		f = path.Join(s.webroot, r.URL.Path)
+		filepath = strings.TrimPrefix(r.URL.Path, "/")
+		filepath = strings.TrimSuffix(filepath, "/")
 	}
 
-	// Check if the requested file is in the defined webroot
-	if _, err := os.Stat(f); os.IsNotExist(err) {
-		// If the URL doesn't represent a valid file, treat request as a redirect
-		handleRedirect(w, r, s)
-	} else {
-		http.ServeFile(w, r, f)
-		s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
-		l.Info("served file", slog.Group("response", "status_code", http.StatusOK, "file", f))
+	// First try reading the a file at the exact path sent
+	var b []byte
+	b, err := fs.ReadFile(*s.webroot, filepath)
+	if err != nil {
+		// If that fails, check that it isn't a link to a directory with an index.html
+		b, err = fs.ReadFile(*s.webroot, fmt.Sprintf("%s/index.html", filepath))
+		if err != nil {
+			// The URL doesn't represent a valid file, treat request as a redirect
+			handleRedirect(w, r, s)
+			return
+		}
 	}
+
+	http.ServeContent(w, r, filepath, time.Now(), bytes.NewReader(b))
+	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
+	l.Info("served file", slog.Group("response", "status_code", http.StatusOK, "file", filepath))
 }
 
 // handleRedirect tries to lookup a redirect by its alias, returning the HTTP 301
@@ -72,15 +82,14 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 	w.WriteHeader(http.StatusNotFound)
 	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusNotFound)).Inc()
 
-	if s.webroot == "" {
+	if s.webroot == nil {
 		w.Write([]byte("Not found"))
 		logPlainResponse()
 		return
 	}
 
 	// Check if there is a 404.html to return, otherwise return plaintext
-	notFoundPagePath := path.Join(s.webroot, "404.html")
-	content, err := os.ReadFile(notFoundPagePath)
+	content, err := fs.ReadFile(*s.webroot, "404.html")
 	if err != nil {
 		w.Write([]byte("Not found"))
 		logPlainResponse()
@@ -88,5 +97,5 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 	}
 
 	w.Write(content)
-	l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "file", notFoundPagePath))
+	l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "file", "404.html"))
 }
