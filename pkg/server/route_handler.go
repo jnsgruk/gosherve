@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -43,6 +44,8 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
+	w.Header().Set("ETag", fmt.Sprintf(`"%d-%x"`, len(b), sha1.Sum(b)))
 
 	http.ServeContent(w, r, filepath, time.Now(), bytes.NewReader(b))
 	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
