@@ -68,7 +68,7 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerSimpleRedirects(c *check.C) {
 func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFound(c *check.C) {
 	body, code := requestRoute(*s.server, "/undefined")
 
-	c.Assert(http.StatusNotFound, check.Equals, code)
+	c.Assert(code, check.Equals, http.StatusNotFound)
 	c.Assert(strings.TrimSpace(body), check.Equals, `Not found`)
 	// Check metrics were incremented properly
 	c.Assert(readCounter(s.server.metrics.requestsTotal), check.Equals, float64(1))
@@ -85,7 +85,7 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFoundRich(c *check.C)
 
 	body, code := requestRoute(*s.server, "/undefined")
 
-	c.Assert(http.StatusNotFound, check.Equals, code)
+	c.Assert(code, check.Equals, http.StatusNotFound)
 	c.Assert(strings.TrimSpace(body), check.Equals, `<h1>404</h1>`)
 	// Check metrics were incremented properly
 	c.Assert(readCounter(s.server.metrics.requestsTotal), check.Equals, float64(1))
@@ -103,14 +103,14 @@ func (s *RouteHandlerTestSuite) TestFileServeOk(c *check.C) {
 
 	body, code := requestRoute(*s.server, "/")
 
-	c.Assert(http.StatusOK, check.Equals, code)
+	c.Assert(code, check.Equals, http.StatusOK)
 	c.Assert(strings.TrimSpace(body), check.Equals, `<h1>Gosherve</h1>`)
 	// Check metrics were incremented properly
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "200"), check.Equals, float64(1))
 
 	body, code = requestRoute(*s.server, "/script.js")
 
-	c.Assert(http.StatusOK, check.Equals, code)
+	c.Assert(code, check.Equals, http.StatusOK)
 	c.Assert(strings.TrimSpace(body), check.Equals, `alert('script')`)
 	// Check metrics were incremented properly
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "200"), check.Equals, float64(2))
@@ -128,7 +128,7 @@ func (s *RouteHandlerTestSuite) TestDirectoryServeOk(c *check.C) {
 
 	body, code := requestRoute(*s.server, "/testDir")
 
-	c.Assert(http.StatusOK, check.Equals, code)
+	c.Assert(code, check.Equals, http.StatusOK)
 	c.Assert(strings.TrimSpace(body), check.Equals, `<h1>Gosherve</h1>`)
 	// Check metrics were incremented properly
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "200"), check.Equals, float64(1))
@@ -138,7 +138,7 @@ func (s *RouteHandlerTestSuite) TestDirectoryServeOk(c *check.C) {
 func (s *RouteHandlerTestSuite) TestFileServeNotFound(c *check.C) {
 	body, code := requestRoute(*s.server, "/")
 
-	c.Assert(http.StatusNotFound, check.Equals, code)
+	c.Assert(code, check.Equals, http.StatusNotFound)
 	c.Assert(strings.TrimSpace(body), check.Equals, `Not found`)
 	// Check metrics were incremented properly
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "404"), check.Equals, float64(1))
