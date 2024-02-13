@@ -143,3 +143,28 @@ func (s *RouteHandlerTestSuite) TestFileServeNotFound(c *check.C) {
 	// Check metrics were incremented properly
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "404"), check.Equals, float64(1))
 }
+
+// TestFileServeCache tests that the Cache-Control and ETag headers are set on files served
+func (s *RouteHandlerTestSuite) TestFileServeCache(c *check.C) {
+	dir := c.MkDir()
+	os.WriteFile(path.Join(dir, "index.html"), []byte("<h1>Gosherve</h1>"), 0666)
+	fsys := os.DirFS(dir)
+	s.server.webroot = &fsys
+
+	// Request the index page initially
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	(*s.server).routeHandler(rr, req)
+
+	// Record the Etag set by the server
+	etag := rr.Header().Get("Etag")
+
+	// Make another request to same resource with the "If-None-Match" header
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("If-None-Match", etag)
+	(*s.server).routeHandler(rr, req)
+
+	// Ensure that 304 is returned, not 200
+	c.Assert(rr.Code, check.Equals, http.StatusNotModified)
+}
