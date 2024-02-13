@@ -30,7 +30,7 @@
             pname = "gosherve";
             inherit version;
             src = lib.cleanSource ./.;
-            vendorHash = "sha256-pemMNEYjcpoHsQ0Cm6gjs+F4rWeT+GhYodsOWnD12fA=";
+            vendorHash = "sha256-pzsbsFIZaTSKFA6jf3LrfvGIuBkU5JraTy5IJEehU5Y=";
             buildInputs = [ cacert ];
             ldflags = [
               "-X main.version=${version}"
