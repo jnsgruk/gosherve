@@ -5,32 +5,35 @@
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , ...
-    }:
+    { self, nixpkgs, ... }:
     let
-      forAllSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
 
-      pkgsForSystem = system: (import nixpkgs {
-        inherit system;
-        overlays = [ self.overlays.default ];
-      });
+      pkgsForSystem =
+        system:
+        (import nixpkgs {
+          inherit system;
+          overlays = [ self.overlays.default ];
+        });
     in
     {
-      overlays.default = _final: prev:
+      overlays.default =
+        _final: prev:
         let
           inherit (prev) buildGoModule lib cacert;
           inherit (self) lastModifiedDate;
           commit = self.rev or self.dirtyRev or "dirty";
-          version = "0.2.4-next";
+          version = "0.3.1-next";
         in
         {
           gosherve = buildGoModule {
             pname = "gosherve";
             inherit version;
             src = lib.cleanSource ./.;
-            vendorHash = "sha256-pzsbsFIZaTSKFA6jf3LrfvGIuBkU5JraTy5IJEehU5Y=";
+            vendorHash = "sha256-/jC6zXGhSkZKDcSNn/SaSTuEYI6FWLwXQ94b72/RH7E=";
             buildInputs = [ cacert ];
             ldflags = [
               "-X main.version=${version}"
@@ -45,7 +48,8 @@
         default = gosherve;
       });
 
-      devShells = forAllSystems (system:
+      devShells = forAllSystems (
+        system:
         let
           pkgs = pkgsForSystem system;
         in
@@ -63,7 +67,7 @@
             ];
             shellHook = "exec zsh";
           };
-        });
+        }
+      );
     };
 }
-
