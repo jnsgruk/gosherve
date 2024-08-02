@@ -71,7 +71,7 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 func handleRedirect(w http.ResponseWriter, r *http.Request, s *Server) bool {
 	l := logging.GetLoggerFromCtx(r.Context())
 
-	alias := strings.TrimPrefix(r.URL.Path, "/")
+	alias := strings.Trim(r.URL.Path, "/")
 
 	url, err := s.LookupRedirect(alias)
 	if err != nil {
