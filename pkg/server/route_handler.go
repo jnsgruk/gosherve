@@ -114,9 +114,10 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 
 	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
 	w.Header().Set("ETag", fmt.Sprintf(`"%d-%x"`, len(content), sha1.Sum(content)))
-	w.WriteHeader(http.StatusNotFound)
+	w.Header().Set("Content-Type", "text/html")
 
-	http.ServeContent(w, r, "404.html", time.Now(), bytes.NewReader(content))
+	w.WriteHeader(http.StatusNotFound)
+	w.Write(content)
 
 	l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "file", "404.html"))
 }
