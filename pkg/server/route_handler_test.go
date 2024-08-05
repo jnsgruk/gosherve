@@ -42,25 +42,29 @@ func requestRoute(s Server, path string) (string, int) {
 	return string(body), res.StatusCode
 }
 
-// TestRouteHandlerSimpleRedirects makes two requests to a well defined redirect when
-// the webroot is not enabled. The metrics should increase by two, and 302 should be returned
+// TestRouteHandlerSimpleRedirects makes three requests to a well defined redirect when
+// the webroot is not enabled. The metrics should increase by three, and 302 should be returned
 // in both cases
 func (s *RouteHandlerTestSuite) TestRouteHandlerSimpleRedirects(c *check.C) {
-	body, code := requestRoute(*s.server, "/foo")
 
-	c.Assert(http.StatusMovedPermanently, check.Equals, code)
-	c.Assert(strings.TrimSpace(body), check.Equals, `<a href="http://foo.bar">Moved Permanently</a>.`)
-	// Check metrics were incremented properly
-	c.Assert(readCounter(s.server.metrics.requestsTotal), check.Equals, float64(1))
-	c.Assert(readCounterVec(*s.server.metrics.redirectsServed, "foo"), check.Equals, float64(1))
+	var redirectTests = []struct {
+		urlPath  string
+		redirect string
+	}{
+		{"/foo", "http://foo.bar"},
+		{"/bar", "http://bar.baz"},
+		{"/bar/", "http://bar.baz"},
+	}
 
-	body, code = requestRoute(*s.server, "/bar")
+	for i, t := range redirectTests {
+		body, code := requestRoute(*s.server, t.urlPath)
 
-	c.Assert(http.StatusMovedPermanently, check.Equals, code)
-	c.Assert(strings.TrimSpace(body), check.Equals, `<a href="http://bar.baz">Moved Permanently</a>.`)
-	// Check metrics were incremented properly
-	c.Assert(readCounter(s.server.metrics.requestsTotal), check.Equals, float64(2))
-	c.Assert(readCounterVec(*s.server.metrics.redirectsServed, "bar"), check.Equals, float64(1))
+		c.Assert(http.StatusMovedPermanently, check.Equals, code)
+		c.Assert(strings.TrimSpace(body), check.Equals, fmt.Sprintf(`<a href="%s">Moved Permanently</a>.`, t.redirect))
+		// Check metrics were incremented properly
+		c.Assert(readCounter(s.server.metrics.requestsTotal), check.Equals, float64(i+1))
+		c.Assert(readCounterVec(*s.server.metrics.redirectsServed, "foo"), check.Equals, float64(1))
+	}
 }
 
 // TestRouteHandlerRedirectNotFound tests the request of a non-defined redirect when the
