@@ -17,17 +17,27 @@ import (
 // routeHandler handles all routes for the Gosherve application except /metrics
 func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 	s.metrics.requestsTotal.Inc()
-	l := logging.GetLoggerFromCtx(r.Context())
+
+	if servedFile := handleFile(w, r, s); servedFile {
+		return
+	}
 
 	// First check if there is a redirect defined, and serve it if there is.
 	if redirected := handleRedirect(w, r, s); redirected {
 		return
 	}
 
+	// No file or redirect matched, so return a not found.
+	handleNotFound(w, r, s)
+}
+
+// handleFile tries to serve a file based on the path in the request, returning a bool if successful.
+func handleFile(w http.ResponseWriter, r *http.Request, s *Server) bool {
+	l := logging.GetLoggerFromCtx(r.Context())
+
 	// If there is no webroot, and the redirect isn't defined, then 404.
 	if s.webroot == nil {
-		handleNotFound(w, r, s)
-		return
+		return false
 	}
 
 	var filepath string
@@ -39,11 +49,10 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 		filepath = strings.TrimSuffix(filepath, "/")
 	}
 
-	// Stat the file and report not found if that fails
+	// Stat the file and return early if that fails
 	fi, err := fs.Stat(*s.webroot, filepath)
 	if err != nil {
-		handleNotFound(w, r, s)
-		return
+		return false
 	}
 
 	// If the file is a directory, append "index.html" to the end
@@ -51,11 +60,10 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 		filepath = fmt.Sprintf("%s/index.html", filepath)
 	}
 
-	// First try reading the a file at the exact path sent
+	// Try reading the file and return early if that fails
 	b, err := fs.ReadFile(*s.webroot, filepath)
 	if err != nil {
-		handleNotFound(w, r, s)
-		return
+		return false
 	}
 
 	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
@@ -64,6 +72,8 @@ func (s *Server) routeHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, filepath, time.Now(), bytes.NewReader(b))
 	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
 	l.Info("served file", slog.Group("response", "status_code", http.StatusOK, "file", filepath))
+
+	return true
 }
 
 // handleRedirect tries to lookup a redirect by its alias, returning the HTTP 301
