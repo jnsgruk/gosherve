@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"fmt"
 	"io/fs"
@@ -9,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jnsgruk/gosherve/pkg/logging"
 )
@@ -60,16 +58,10 @@ func handleFile(w http.ResponseWriter, r *http.Request, s *Server) bool {
 		filepath = fmt.Sprintf("%s/index.html", filepath)
 	}
 
-	// Try reading the file and return early if that fails
-	b, err := fs.ReadFile(*s.webroot, filepath)
-	if err != nil {
-		return false
-	}
-
 	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
-	w.Header().Set("ETag", fmt.Sprintf(`"%d-%x"`, len(b), sha1.Sum(b)))
+	w.Header().Set("ETag", fmt.Sprintf(`"%s-%d-%x"`, fi.Name(), fi.Size(), sha1.Sum([]byte(fi.ModTime().String()))))
 
-	http.ServeContent(w, r, filepath, time.Now(), bytes.NewReader(b))
+	http.ServeFileFS(w, r, *s.webroot, filepath)
 	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
 	l.Info("served file", slog.Group("response", "status_code", http.StatusOK, "file", filepath))
 
