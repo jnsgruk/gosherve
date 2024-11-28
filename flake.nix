@@ -26,7 +26,7 @@
           inherit (prev) buildGoModule lib cacert;
           inherit (self) lastModifiedDate;
           commit = self.rev or self.dirtyRev or "dirty";
-          version = "0.3.1-next";
+          version = "0.3.5-next";
         in
         {
           gosherve = buildGoModule {
@@ -58,7 +58,7 @@
             name = "gosherve";
             NIX_CONFIG = "experimental-features = nix-command flakes";
             nativeBuildInputs = with pkgs; [
-              go_1_21
+              go_1_22
               go-tools
               gofumpt
               gopls
