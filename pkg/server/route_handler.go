@@ -59,7 +59,7 @@ func handleFile(w http.ResponseWriter, r *http.Request, s *Server) bool {
 	}
 
 	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
-	w.Header().Set("ETag", fmt.Sprintf(`"%s-%d-%x"`, fi.Name(), fi.Size(), sha1.Sum([]byte(fi.ModTime().String()))))
+	w.Header().Set("ETag", calculateETag(filepath, s.webroot))
 
 	http.ServeFileFS(w, r, *s.webroot, filepath)
 	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
@@ -122,4 +122,14 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 	w.Write(content)
 
 	l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "file", "404.html"))
+}
+
+// calculateETag calculates the ETag for a file based on its filename, size and last modified time.
+func calculateETag(filename string, fsys *fs.FS) string {
+	fi, err := fs.Stat(*fsys, filename)
+	if err != nil {
+		return ""
+	}
+
+	return fmt.Sprintf(`"%s-%d-%x"`, fi.Name(), fi.Size(), sha1.Sum([]byte(fi.ModTime().String())))
 }
