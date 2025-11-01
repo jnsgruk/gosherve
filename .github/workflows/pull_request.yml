@@ -35,7 +35,7 @@ jobs:
           goreleaser build --snapshot --verbose
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: gosherve-dist
           if-no-files-found: error
