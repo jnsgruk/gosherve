@@ -1,8 +1,10 @@
 package server
 
 import (
+	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,6 +13,9 @@ import (
 
 	"gopkg.in/check.v1"
 )
+
+//go:embed testdata/embed_a/*.txt testdata/embed_b/*.txt
+var embeddedTestFiles embed.FS
 
 type RouteHandlerTestSuite struct {
 	server             *Server
@@ -162,6 +167,8 @@ func (s *RouteHandlerTestSuite) TestFileServeCache(c *check.C) {
 
 	// Record the Etag set by the server
 	etag := rr.Header().Get("Etag")
+	c.Assert(etag, check.Not(check.Equals), "")
+	c.Assert(rr.Header().Get("Cache-Control"), check.Equals, DefaultCacheControl)
 
 	// Make another request to same resource with the "If-None-Match" header
 	rr = httptest.NewRecorder()
@@ -171,4 +178,90 @@ func (s *RouteHandlerTestSuite) TestFileServeCache(c *check.C) {
 
 	// Ensure that 304 is returned, not 200
 	c.Assert(rr.Code, check.Equals, http.StatusNotModified)
+}
+
+// TestFileServeCacheRules tests default policies, first-match precedence,
+// fingerprinted assets and rules evaluated against resolved directory paths.
+func (s *RouteHandlerTestSuite) TestFileServeCacheRules(c *check.C) {
+	dir := c.MkDir()
+	os.MkdirAll(path.Join(dir, "docs"), 0777)
+	os.MkdirAll(path.Join(dir, "feed"), 0777)
+	os.MkdirAll(path.Join(dir, "css"), 0777)
+	os.WriteFile(path.Join(dir, "index.html"), []byte("home"), 0666)
+	os.WriteFile(path.Join(dir, "docs", "index.html"), []byte("docs"), 0666)
+	os.WriteFile(path.Join(dir, "feed", "index.xml"), []byte("feed"), 0666)
+	os.WriteFile(path.Join(dir, "css", "main.min.abcdef.css"), []byte("css"), 0666)
+	os.WriteFile(path.Join(dir, "robots.txt"), []byte("robots"), 0666)
+	fsys := os.DirFS(dir)
+
+	s.server = NewServer(&fsys, "", WithCacheRules(
+		CacheRule{Pattern: "*.xml", CacheControl: "no-cache"},
+		CacheRule{Pattern: "feed/index.xml", CacheControl: "public, max-age=60"},
+		CacheRule{Pattern: "docs/index.html", CacheControl: "public, max-age=300"},
+		CacheRule{Pattern: "index.html", CacheControl: "no-cache"},
+		CacheRule{Pattern: "*.min.*.css", CacheControl: "public, max-age=31536000, immutable"},
+	))
+
+	tests := []struct {
+		requestPath  string
+		cacheControl string
+	}{
+		{requestPath: "/", cacheControl: "no-cache"},
+		{requestPath: "/docs", cacheControl: "public, max-age=300"},
+		{requestPath: "/docs/", cacheControl: "public, max-age=300"},
+		{requestPath: "/feed/index.xml", cacheControl: "no-cache"},
+		{requestPath: "/css/main.min.abcdef.css", cacheControl: "public, max-age=31536000, immutable"},
+		{requestPath: "/robots.txt", cacheControl: DefaultCacheControl},
+	}
+
+	for _, test := range tests {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", test.requestPath, nil)
+		s.server.routeHandler(rr, req)
+
+		c.Assert(rr.Code, check.Equals, http.StatusOK, check.Commentf("request path: %s", test.requestPath))
+		c.Assert(rr.Header().Get("Cache-Control"), check.Equals, test.cacheControl, check.Commentf("request path: %s", test.requestPath))
+	}
+}
+
+// TestNoCacheConditionalRequest ensures no-cache responses retain validators
+// and can be revalidated with If-None-Match.
+func (s *RouteHandlerTestSuite) TestNoCacheConditionalRequest(c *check.C) {
+	dir := c.MkDir()
+	os.WriteFile(path.Join(dir, "index.xml"), []byte("<feed></feed>"), 0666)
+	fsys := os.DirFS(dir)
+	s.server = NewServer(&fsys, "", WithCacheRules(
+		CacheRule{Pattern: "*.xml", CacheControl: "no-cache"},
+	))
+
+	first := httptest.NewRecorder()
+	s.server.routeHandler(first, httptest.NewRequest("GET", "/index.xml", nil))
+	etag := first.Header().Get("ETag")
+	c.Assert(etag, check.Not(check.Equals), "")
+	c.Assert(first.Header().Get("Cache-Control"), check.Equals, "no-cache")
+
+	second := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/index.xml", nil)
+	req.Header.Set("If-None-Match", etag)
+	s.server.routeHandler(second, req)
+
+	c.Assert(second.Code, check.Equals, http.StatusNotModified)
+	c.Assert(second.Header().Get("ETag"), check.Equals, etag)
+	c.Assert(second.Header().Get("Cache-Control"), check.Equals, "no-cache")
+}
+
+// TestEmbeddedFileETags ensures embedded files use their content, rather than
+// filename, size and zero modification time, to generate validators.
+func (s *RouteHandlerTestSuite) TestEmbeddedFileETags(c *check.C) {
+	embedA, err := fs.Sub(embeddedTestFiles, "testdata/embed_a")
+	c.Assert(err, check.IsNil)
+	embedB, err := fs.Sub(embeddedTestFiles, "testdata/embed_b")
+	c.Assert(err, check.IsNil)
+
+	etagA := calculateETag("same.txt", &embedA)
+	etagB := calculateETag("same.txt", &embedB)
+	etagOtherName := calculateETag("other.txt", &embedA)
+
+	c.Assert(etagA, check.Not(check.Equals), etagB)
+	c.Assert(etagA, check.Equals, etagOtherName)
 }

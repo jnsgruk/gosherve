@@ -33,6 +33,36 @@ The server is configured with two environment variables:
 | `GOSHERVE_REDIRECT_MAP_URL` | `string` | URL containing a list of aliases and corresponding redirect URLs                                |
 | `GOSHERVE_LOG_LEVEL`        | `string` | Sets the log level. One of: `info`, `debug`, `warn`, `error`                                    |
 
+### Cache control
+
+Files use `public, max-age=31536000, must-revalidate` by default. Applications
+embedding Gosherve can override that policy with ordered path-based rules. The
+first matching rule wins, and requests for directories are matched after they
+resolve to their `index.html` file.
+
+For example, a site that serves Hugo-generated XML feeds can require
+revalidation while retaining ETag support:
+
+```go
+s := server.NewServer(
+	&fsys,
+	redirectsURL,
+	server.WithCacheRules(
+		server.CacheRule{
+			Pattern:      "*.xml",
+			CacheControl: "no-cache",
+		},
+	),
+)
+```
+
+Patterns use Go's `path.Match` syntax and are evaluated against the resolved,
+webroot-relative file path. A pattern without a slash, such as `*.xml`, matches
+the file name at any directory depth. A pattern containing a slash matches the
+complete path. Rules can also assign long-lived immutable caching to
+fingerprinted assets, for example with `*.min.*.css` and
+`public, max-age=31536000, immutable`.
+
 ## Hacking
 
 The application has minimal dependencies and can be run like so:

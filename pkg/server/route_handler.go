@@ -1,11 +1,12 @@
 package server
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
@@ -38,34 +39,63 @@ func handleFile(w http.ResponseWriter, r *http.Request, s *Server) bool {
 		return false
 	}
 
-	var filepath string
-	if r.URL.Path == "/" {
-		// Serve "index.html" if someone browses to the root
-		filepath = "index.html"
-	} else {
-		filepath = strings.TrimPrefix(r.URL.Path, "/")
-		filepath = strings.TrimSuffix(filepath, "/")
-	}
-
-	// Stat the file and return early if that fails
-	fi, err := fs.Stat(*s.webroot, filepath)
-	if err != nil {
+	filepath, ok := resolveFilePath(r.URL.Path, s.webroot)
+	if !ok {
 		return false
 	}
 
-	// If the file is a directory, append "index.html" to the end
-	if fi.IsDir() {
-		filepath = fmt.Sprintf("%s/index.html", filepath)
+	w.Header().Set("Cache-Control", s.cacheControl(filepath))
+	if etag := calculateETag(filepath, s.webroot); etag != "" {
+		w.Header().Set("ETag", etag)
 	}
-
-	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
-	w.Header().Set("ETag", calculateETag(filepath, s.webroot))
 
 	http.ServeFileFS(w, r, *s.webroot, filepath)
 	s.metrics.responseStatus.WithLabelValues(strconv.Itoa(http.StatusOK)).Inc()
 	l.Info("served file", slog.Group("response", "status_code", http.StatusOK, "file", filepath))
 
 	return true
+}
+
+// resolveFilePath resolves a request path to a file in the webroot. Directory
+// requests resolve to the index.html within that directory.
+func resolveFilePath(requestPath string, fsys *fs.FS) (string, bool) {
+	filepath := strings.Trim(requestPath, "/")
+	if filepath == "" {
+		filepath = "index.html"
+	}
+
+	fi, err := fs.Stat(*fsys, filepath)
+	if err != nil {
+		return "", false
+	}
+
+	if fi.IsDir() {
+		filepath = path.Join(filepath, "index.html")
+		fi, err = fs.Stat(*fsys, filepath)
+		if err != nil || fi.IsDir() {
+			return "", false
+		}
+	}
+
+	return filepath, true
+}
+
+// cacheControl returns the policy for the first rule matching the resolved
+// file path, or the default policy if no rule matches.
+func (s *Server) cacheControl(filepath string) string {
+	for _, rule := range s.cacheRules {
+		candidate := filepath
+		if !strings.Contains(rule.Pattern, "/") {
+			candidate = path.Base(filepath)
+		}
+
+		matched, err := path.Match(rule.Pattern, candidate)
+		if err == nil && matched {
+			return rule.CacheControl
+		}
+	}
+
+	return DefaultCacheControl
 }
 
 // handleRedirect tries to lookup a redirect by its alias, returning the HTTP 301
@@ -114,8 +144,8 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", "public, max-age=31536000, must-revalidate")
-	w.Header().Set("ETag", fmt.Sprintf(`"%d-%x"`, len(content), sha1.Sum(content)))
+	w.Header().Set("Cache-Control", DefaultCacheControl)
+	w.Header().Set("ETag", contentETag(content))
 	w.Header().Set("Content-Type", "text/html")
 
 	w.WriteHeader(http.StatusNotFound)
@@ -124,12 +154,16 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 	l.Error("not found", slog.Group("response", "status_code", http.StatusNotFound, "file", "404.html"))
 }
 
-// calculateETag calculates the ETag for a file based on its filename, size and last modified time.
+// calculateETag calculates the ETag for a file based on its content.
 func calculateETag(filename string, fsys *fs.FS) string {
-	fi, err := fs.Stat(*fsys, filename)
+	content, err := fs.ReadFile(*fsys, filename)
 	if err != nil {
 		return ""
 	}
 
-	return fmt.Sprintf(`"%s-%d-%x"`, fi.Name(), fi.Size(), sha1.Sum([]byte(fi.ModTime().String())))
+	return contentETag(content)
+}
+
+func contentETag(content []byte) string {
+	return fmt.Sprintf(`"%x"`, sha256.Sum256(content))
 }
