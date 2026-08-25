@@ -23,17 +23,18 @@
       overlays.default =
         _final: prev:
         let
-          inherit (prev) buildGoModule lib cacert;
+          inherit (prev) lib cacert;
+          buildGoModule = prev.buildGoModule.override { go = prev.go_1_25; };
           inherit (self) lastModifiedDate;
           commit = self.rev or self.dirtyRev or "dirty";
-          version = "0.3.5-next";
+          version = "0.4.0";
         in
         {
           gosherve = buildGoModule {
             pname = "gosherve";
             inherit version;
             src = lib.cleanSource ./.;
-            vendorHash = "sha256-/jC6zXGhSkZKDcSNn/SaSTuEYI6FWLwXQ94b72/RH7E=";
+            vendorHash = "sha256-KweS4BsJmfkRZ0Ly8sPV7GVgi7SjZxIH5CkWbao6HAs=";
             buildInputs = [ cacert ];
             ldflags = [
               "-X main.version=${version}"
@@ -58,7 +59,7 @@
             name = "gosherve";
             NIX_CONFIG = "experimental-features = nix-command flakes";
             nativeBuildInputs = with pkgs; [
-              go_1_22
+              go_1_25
               go-tools
               gofumpt
               gopls
