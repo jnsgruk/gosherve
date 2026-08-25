@@ -59,9 +59,10 @@ s := server.NewServer(
 Patterns use Go's `path.Match` syntax and are evaluated against the resolved,
 webroot-relative file path. A pattern without a slash, such as `*.xml`, matches
 the file name at any directory depth. A pattern containing a slash matches the
-complete path. Rules can also assign long-lived immutable caching to
-fingerprinted assets, for example with `*.min.*.css` and
-`public, max-age=31536000, immutable`.
+complete path. Custom not-found responses are matched as `404.html`, allowing a
+rule to assign them `no-store`. Rules can also assign long-lived immutable
+caching to fingerprinted assets, for example with `*.min.*.css` and `public,
+max-age=31536000, immutable`.
 
 ## Hacking
 

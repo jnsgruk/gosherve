@@ -101,6 +101,25 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFoundRich(c *check.C)
 	c.Assert(readCounterVec(*s.server.metrics.responseStatus, "404"), check.Equals, float64(1))
 }
 
+// TestRouteHandlerNotFoundCacheRule ensures custom 404 files use the same
+// resolved-path cache rules as other file responses.
+func (s *RouteHandlerTestSuite) TestRouteHandlerNotFoundCacheRule(c *check.C) {
+	dir := c.MkDir()
+	os.WriteFile(path.Join(dir, "404.html"), []byte("<h1>404</h1>"), 0666)
+	fsys := os.DirFS(dir)
+	s.server = NewServer(&fsys, "", WithCacheRules(
+		CacheRule{Pattern: "404.html", CacheControl: "no-store"},
+	))
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/undefined", nil)
+	s.server.routeHandler(rr, req)
+
+	c.Assert(rr.Code, check.Equals, http.StatusNotFound)
+	c.Assert(rr.Header().Get("Cache-Control"), check.Equals, "no-store")
+	c.Assert(rr.Header().Get("ETag"), check.Not(check.Equals), "")
+}
+
 // TestFileServeOk tests a request to the root both where there is a webroot enabled,
 // and where there is not
 func (s *RouteHandlerTestSuite) TestFileServeOk(c *check.C) {

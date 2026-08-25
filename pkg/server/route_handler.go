@@ -144,7 +144,7 @@ func handleNotFound(w http.ResponseWriter, r *http.Request, s *Server) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", DefaultCacheControl)
+	w.Header().Set("Cache-Control", s.cacheControl("404.html"))
 	w.Header().Set("ETag", contentETag(content))
 	w.Header().Set("Content-Type", "text/html")
 
