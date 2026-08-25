@@ -20,6 +20,7 @@ type Server struct {
 	webroot         *fs.FS
 	metrics         *metrics
 	registry        *prometheus.Registry
+	staticFiles     *staticManifest
 }
 
 // DefaultCacheControl is the cache policy used when no configured rule matches.
@@ -41,6 +42,17 @@ type ServerOption func(*Server)
 func WithCacheRules(rules ...CacheRule) ServerOption {
 	return func(s *Server) {
 		s.cacheRules = append([]CacheRule(nil), rules...)
+	}
+}
+
+// WithStaticFiles enables serving from an immutable manifest prepared with
+// PrepareStaticFiles. The manifest must be prepared from the webroot passed to
+// NewServer.
+func WithStaticFiles(files *StaticFiles) ServerOption {
+	return func(s *Server) {
+		if files != nil {
+			s.staticFiles = files.manifest
+		}
 	}
 }
 

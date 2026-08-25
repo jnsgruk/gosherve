@@ -64,6 +64,53 @@ rule to assign them `no-store`. Rules can also assign long-lived immutable
 caching to fingerprinted assets, for example with `*.min.*.css` and `public,
 max-age=31536000, immutable`.
 
+### Prepared static files
+
+Applications serving immutable content can prepare their filesystem before
+constructing the server. Gosherve walks the filesystem once, precomputes file
+metadata and content-based ETags, and optionally prepares gzip and Brotli
+representations:
+
+```go
+fsys, err := fs.Sub(publicFS, "public")
+if err != nil {
+	return err
+}
+
+staticFiles, err := server.PrepareStaticFiles(
+	fsys,
+	server.WithPrecompression(
+		server.CompressionBrotli,
+		server.CompressionGzip,
+	),
+)
+if err != nil {
+	return err
+}
+
+s := server.NewServer(
+	&fsys,
+	redirectsURL,
+	server.WithStaticFiles(staticFiles),
+)
+```
+
+Call `PrepareStaticFiles` after `fs.Sub`, and pass the result explicitly with
+`WithStaticFiles`. Only use it when the filesystem will not change for the
+lifetime of the server. Existing callers that do not provide `WithStaticFiles`
+continue to use the standard serving path.
+
+By default, only compressible files of at least 1 KiB are considered, using
+gzip level 6 and Brotli level 5. Representations that are not smaller than the
+source are discarded. The threshold and levels can be adjusted with
+`WithMinimumCompressionSize`, `WithGzipLevel`, and `WithBrotliLevel`.
+
+Prepared responses negotiate the best available representation from
+`Accept-Encoding`, include `Vary: Accept-Encoding`, and use a distinct ETag for
+each representation. This lets `HEAD` and matching conditional requests avoid
+reading or hashing file content during request handling. Preparation adds
+startup CPU time and retains compressed representations in memory.
+
 ## Hacking
 
 The application has minimal dependencies and can be run like so:
