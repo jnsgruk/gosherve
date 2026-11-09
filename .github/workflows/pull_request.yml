@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build Gosherve
@@ -16,23 +19,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Go
-        uses: actions/setup-go@v7
+      - name: Launch Workshop
+        uses: canonical/launch-workshop@b538173e2c4163488c4628b4aef79a6002475e76 # v1
         with:
-          go-version-file: "go.mod"
+          cache: go:mod-cache
+
+      - name: Lint gosherve
+        run: |
+          workshop run -- lint-fix
+          git diff --exit-code
 
       - name: Run tests
         run: |
-          go test -v ./...
+          workshop run -- test -v
 
-      - name: Setup goreleaser
-        run: |
-          sudo snap install --classic goreleaser
-
-      - name: Build gosherve
+      - name: Build snapshot
         id: build
         run: |
-          goreleaser build --snapshot --verbose
+          workshop run -- snapshot --verbose
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v7
