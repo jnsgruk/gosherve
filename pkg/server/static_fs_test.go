@@ -332,14 +332,12 @@ func TestStaticFilesConcurrentServing(t *testing.T) {
 	server := newCompressedTestServer(t)
 	var workers sync.WaitGroup
 	for range 32 {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			response := requestStaticFile(server, http.MethodGet, "/", "gzip, br", "")
 			if response.Code != http.StatusOK {
 				t.Errorf("got status %d, want 200", response.Code)
 			}
-		}()
+		})
 	}
 	workers.Wait()
 }
@@ -372,7 +370,7 @@ func TestStaticFilesOptions(t *testing.T) {
 
 func BenchmarkStaticFilesServing(b *testing.B) {
 	originalLogger := slog.Default()
-	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	slog.SetDefault(slog.New(slog.DiscardHandler))
 	b.Cleanup(func() { slog.SetDefault(originalLogger) })
 
 	webroot := fstest.MapFS{"index.html": {Data: bytes.Repeat([]byte("benchmark content\n"), 4096)}}
