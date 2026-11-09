@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/jnsgruk/gosherve/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,7 +42,7 @@ type ServerOption func(*Server)
 // WithCacheRules configures ordered, path-based cache rules.
 func WithCacheRules(rules ...CacheRule) ServerOption {
 	return func(s *Server) {
-		s.cacheRules = append([]CacheRule(nil), rules...)
+		s.cacheRules = slices.Clone(rules)
 	}
 }
 
