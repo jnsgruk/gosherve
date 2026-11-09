@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+# Go is provided by the Store Go SDK listed in workshop.yaml.
+# Setup hooks do not run in a login shell, so load the Go SDK's PATH explicitly.
+source /etc/profile.d/go.sh
+command -v go >/dev/null
+
+snap install goreleaser --classic
+
+# Install shared tools outside root's default Go bin directory.
+export GOBIN=/usr/local/bin
+go install golang.org/x/tools/gopls@latest
+go install mvdan.cc/gofumpt@latest
+go install honnef.co/go/tools/cmd/staticcheck@latest

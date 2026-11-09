@@ -1,0 +1,35 @@
+name: gosherve
+base: ubuntu@26.04
+
+sdks:
+  - name: project-build-essential
+  - name: go
+    channel: 1.27/stable
+  - name: project-go-tools
+  - name: nix
+    channel: latest/edge
+  - name: codex
+
+actions:
+  build: |
+    set -euo pipefail
+    mkdir -p dist
+    go build -o dist/gosherve "$@" ./cmd/gosherve
+  test: |
+    set -euo pipefail
+    go test "$@" ./...
+  lint-fix: |
+    set -euo pipefail
+    export PATH="/usr/local/bin:$PATH"
+    for tool in gofumpt staticcheck; do
+      if ! command -v "$tool" >/dev/null 2>&1; then
+        printf '%s is missing. Run workshop refresh on the host to apply the project-go-tools SDK updates.\n' "$tool" >&2
+        exit 1
+      fi
+    done
+    gofumpt -w .
+    go vet ./...
+    staticcheck ./...
+  snapshot: |
+    set -euo pipefail
+    goreleaser release --snapshot --clean "$@"

@@ -1,0 +1,2 @@
+name: go-tools
+summary: GoReleaser, gopls, gofumpt, and staticcheck for use with the Go SDK

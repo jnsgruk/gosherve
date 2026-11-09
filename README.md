@@ -132,12 +132,29 @@ go run ./cmd/gosherve/main.go
 
 ## Build & Release
 
+With the Workshop environment launched, run the development actions from the
+project directory:
+
+```shell
+workshop run -- build     # Build dist/gosherve
+workshop run -- test      # Run all tests
+workshop run -- lint-fix  # Apply gofumpt formatting, then run go vet and staticcheck
+workshop run -- snapshot  # Build snapshot binaries, archives, and checksums in dist/
+```
+
+Build, test, and snapshot accept extra flags, for example
+`workshop run -- test -v -run TestName`. After changing SDK setup hooks, run
+`workshop refresh` on the host to install the updated tools. The lint-fix action
+rewrites formatting; go vet and staticcheck report remaining issues that need
+code changes. Snapshot replaces the contents of `dist/` and runs the configured
+GoReleaser hooks, including `go mod tidy`.
+
 This project uses goreleaser to manage builds and releases.
 
 In local development, you can build a snapshot release like so:
 
 ```shell
-goreleaser --snapshot --rm-dist
+goreleaser release --snapshot --clean
 ```
 
 The output will be present in `dist/`.

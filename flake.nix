@@ -48,27 +48,5 @@
         inherit (pkgsForSystem system) gosherve;
         default = gosherve;
       });
-
-      devShells = forAllSystems (
-        system:
-        let
-          pkgs = pkgsForSystem system;
-        in
-        {
-          default = pkgs.mkShell {
-            name = "gosherve";
-            NIX_CONFIG = "experimental-features = nix-command flakes";
-            nativeBuildInputs = with pkgs; [
-              go_1_27
-              go-tools
-              gofumpt
-              gopls
-              goreleaser
-              zsh
-            ];
-            shellHook = "exec zsh";
-          };
-        }
-      );
     };
 }
