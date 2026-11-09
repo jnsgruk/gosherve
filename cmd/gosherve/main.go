@@ -20,8 +20,9 @@ var (
 	date    string
 )
 
-var shortDesc = "A file server & URL shortening/redirect service"
-var longDesc string = `A file server & URL shortening/redirect service
+var (
+	shortDesc        = "A file server & URL shortening/redirect service"
+	longDesc  string = `A file server & URL shortening/redirect service
 
 This project is a simple web server written in Go that will:
 
@@ -39,6 +40,7 @@ a url containing alias/URL pairs. For example:
 
 For more information, visit the homepage at: https://github.com/jnsgruk/gosherve
 `
+)
 
 var rootCmd = &cobra.Command{
 	Use:           "gosherve",

@@ -51,8 +51,7 @@ func requestRoute(s Server, path string) (string, int) {
 // the webroot is not enabled. The metrics should increase by three, and 302 should be returned
 // in both cases
 func (s *RouteHandlerTestSuite) TestRouteHandlerSimpleRedirects(c *check.C) {
-
-	var redirectTests = []struct {
+	redirectTests := []struct {
 		urlPath  string
 		redirect string
 	}{
@@ -88,7 +87,7 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFound(c *check.C) {
 // webroot is enabled and can serve a 404.html.
 func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFoundRich(c *check.C) {
 	dir := c.MkDir()
-	os.WriteFile(path.Join(dir, "404.html"), []byte("<h1>404</h1>"), 0666)
+	os.WriteFile(path.Join(dir, "404.html"), []byte("<h1>404</h1>"), 0o666)
 	fsys := os.DirFS(dir)
 	s.server.webroot = &fsys
 
@@ -105,7 +104,7 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerRedirectNotFoundRich(c *check.C)
 // resolved-path cache rules as other file responses.
 func (s *RouteHandlerTestSuite) TestRouteHandlerNotFoundCacheRule(c *check.C) {
 	dir := c.MkDir()
-	os.WriteFile(path.Join(dir, "404.html"), []byte("<h1>404</h1>"), 0666)
+	os.WriteFile(path.Join(dir, "404.html"), []byte("<h1>404</h1>"), 0o666)
 	fsys := os.DirFS(dir)
 	s.server = NewServer(&fsys, "", WithCacheRules(
 		CacheRule{Pattern: "404.html", CacheControl: "no-store"},
@@ -124,8 +123,8 @@ func (s *RouteHandlerTestSuite) TestRouteHandlerNotFoundCacheRule(c *check.C) {
 // and where there is not
 func (s *RouteHandlerTestSuite) TestFileServeOk(c *check.C) {
 	dir := c.MkDir()
-	os.WriteFile(path.Join(dir, "index.html"), []byte("<h1>Gosherve</h1>"), 0666)
-	os.WriteFile(path.Join(dir, "script.js"), []byte("alert('script')"), 0666)
+	os.WriteFile(path.Join(dir, "index.html"), []byte("<h1>Gosherve</h1>"), 0o666)
+	os.WriteFile(path.Join(dir, "script.js"), []byte("alert('script')"), 0o666)
 	fsys := os.DirFS(dir)
 	s.server.webroot = &fsys
 
@@ -148,8 +147,8 @@ func (s *RouteHandlerTestSuite) TestFileServeOk(c *check.C) {
 // and where there is not
 func (s *RouteHandlerTestSuite) TestDirectoryServeOk(c *check.C) {
 	dir := c.MkDir()
-	os.MkdirAll(path.Join(dir, "testDir"), 0777)
-	os.WriteFile(path.Join(dir, "testDir", "index.html"), []byte("<h1>Gosherve</h1>"), 0666)
+	os.MkdirAll(path.Join(dir, "testDir"), 0o777)
+	os.WriteFile(path.Join(dir, "testDir", "index.html"), []byte("<h1>Gosherve</h1>"), 0o666)
 
 	fsys := os.DirFS(dir)
 	s.server.webroot = &fsys
@@ -175,7 +174,7 @@ func (s *RouteHandlerTestSuite) TestFileServeNotFound(c *check.C) {
 // TestFileServeCache tests that the Cache-Control and ETag headers are set on files served
 func (s *RouteHandlerTestSuite) TestFileServeCache(c *check.C) {
 	dir := c.MkDir()
-	os.WriteFile(path.Join(dir, "index.html"), []byte("<h1>Gosherve</h1>"), 0666)
+	os.WriteFile(path.Join(dir, "index.html"), []byte("<h1>Gosherve</h1>"), 0o666)
 	fsys := os.DirFS(dir)
 	s.server.webroot = &fsys
 
@@ -203,14 +202,14 @@ func (s *RouteHandlerTestSuite) TestFileServeCache(c *check.C) {
 // fingerprinted assets and rules evaluated against resolved directory paths.
 func (s *RouteHandlerTestSuite) TestFileServeCacheRules(c *check.C) {
 	dir := c.MkDir()
-	os.MkdirAll(path.Join(dir, "docs"), 0777)
-	os.MkdirAll(path.Join(dir, "feed"), 0777)
-	os.MkdirAll(path.Join(dir, "css"), 0777)
-	os.WriteFile(path.Join(dir, "index.html"), []byte("home"), 0666)
-	os.WriteFile(path.Join(dir, "docs", "index.html"), []byte("docs"), 0666)
-	os.WriteFile(path.Join(dir, "feed", "index.xml"), []byte("feed"), 0666)
-	os.WriteFile(path.Join(dir, "css", "main.min.abcdef.css"), []byte("css"), 0666)
-	os.WriteFile(path.Join(dir, "robots.txt"), []byte("robots"), 0666)
+	os.MkdirAll(path.Join(dir, "docs"), 0o777)
+	os.MkdirAll(path.Join(dir, "feed"), 0o777)
+	os.MkdirAll(path.Join(dir, "css"), 0o777)
+	os.WriteFile(path.Join(dir, "index.html"), []byte("home"), 0o666)
+	os.WriteFile(path.Join(dir, "docs", "index.html"), []byte("docs"), 0o666)
+	os.WriteFile(path.Join(dir, "feed", "index.xml"), []byte("feed"), 0o666)
+	os.WriteFile(path.Join(dir, "css", "main.min.abcdef.css"), []byte("css"), 0o666)
+	os.WriteFile(path.Join(dir, "robots.txt"), []byte("robots"), 0o666)
 	fsys := os.DirFS(dir)
 
 	s.server = NewServer(&fsys, "", WithCacheRules(
@@ -247,7 +246,7 @@ func (s *RouteHandlerTestSuite) TestFileServeCacheRules(c *check.C) {
 // and can be revalidated with If-None-Match.
 func (s *RouteHandlerTestSuite) TestNoCacheConditionalRequest(c *check.C) {
 	dir := c.MkDir()
-	os.WriteFile(path.Join(dir, "index.xml"), []byte("<feed></feed>"), 0666)
+	os.WriteFile(path.Join(dir, "index.xml"), []byte("<feed></feed>"), 0o666)
 	fsys := os.DirFS(dir)
 	s.server = NewServer(&fsys, "", WithCacheRules(
 		CacheRule{Pattern: "*.xml", CacheControl: "no-cache"},
