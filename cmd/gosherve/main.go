@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"runtime"
@@ -52,7 +53,6 @@ var rootCmd = &cobra.Command{
 		logging.SetupLogger(viper.GetString("log_level"))
 
 		webroot_path := viper.GetString("webroot")
-		webrootFS := os.DirFS(webroot_path)
 		redirect_map_url := viper.GetString("redirect_map_url")
 
 		if redirect_map_url == "" {
@@ -60,8 +60,19 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("GOSHERVE_REDIRECT_MAP_URL environment variable not set")
 		}
 
+		var webrootFS *fs.FS
+		if webroot_path != "" {
+			root, err := os.OpenRoot(webroot_path)
+			if err != nil {
+				return fmt.Errorf("open webroot: %w", err)
+			}
+			defer root.Close()
+			fsys := root.FS()
+			webrootFS = &fsys
+		}
+
 		// Instantiate a new Gosherve server
-		s := server.NewServer(&webrootFS, redirect_map_url)
+		s := server.NewServer(webrootFS, redirect_map_url)
 		slog.Info("gosherve", "version", version, "commit", commit, "build_date", date)
 
 		// Hydrate the redirects map

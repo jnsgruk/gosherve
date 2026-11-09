@@ -33,6 +33,10 @@ The server is configured with two environment variables:
 | `GOSHERVE_REDIRECT_MAP_URL` | `string` | URL containing a list of aliases and corresponding redirect URLs                                |
 | `GOSHERVE_LOG_LEVEL`        | `string` | Sets the log level. One of: `info`, `debug`, `warn`, `error`                                    |
 
+The configured webroot must be an existing, accessible directory. File access is
+confined to that directory tree; symlinks must be relative and resolve within
+the webroot.
+
 ### Cache control
 
 Files use `public, max-age=31536000, must-revalidate` by default. Applications
