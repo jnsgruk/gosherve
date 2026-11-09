@@ -122,7 +122,7 @@ func setRepresentationHeaders(header http.Header, file *staticFile, representati
 
 func addVary(header http.Header, value string) {
 	for _, existing := range header.Values("Vary") {
-		for _, token := range strings.Split(existing, ",") {
+		for token := range strings.SplitSeq(existing, ",") {
 			if strings.EqualFold(strings.TrimSpace(token), value) {
 				return
 			}
@@ -161,14 +161,14 @@ func negotiateContentEncoding(acceptEncoding []string, available map[string]sele
 	}
 
 	quality := map[string]float64{}
-	for _, value := range strings.Split(header, ",") {
-		parts := strings.Split(value, ";")
-		encoding := strings.ToLower(strings.TrimSpace(parts[0]))
+	for value := range strings.SplitSeq(header, ",") {
+		encoding, parameters, _ := strings.Cut(value, ";")
+		encoding = strings.ToLower(strings.TrimSpace(encoding))
 		if encoding == "" {
 			continue
 		}
 		q := 1.0
-		for _, parameter := range parts[1:] {
+		for parameter := range strings.SplitSeq(parameters, ";") {
 			name, raw, found := strings.Cut(strings.TrimSpace(parameter), "=")
 			if !found || !strings.EqualFold(strings.TrimSpace(name), "q") {
 				continue
