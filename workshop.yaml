@@ -6,8 +6,6 @@ sdks:
   - name: go
     channel: 1.27/stable
   - name: project-go-tools
-  - name: nix
-    channel: latest/edge
   - name: codex
 
 actions:
